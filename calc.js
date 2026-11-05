@@ -87,7 +87,88 @@
     return { ok: true, nilai: admin + debit, rincian: `Administrasi ${formatRupiah(admin)} + Kartu debit ${formatRupiah(debit)}` };
   }
 
-  const api = { parseAngka, formatRupiah, formatDesimal, konversi, bos, pip, kb, listrik, rekening };
+  // Pembagian total BPJS ke blok kuesioner (sesuai KIUT_V3).
+  const BLOK_BPJS = {
+    'PBI': t => ({ ve: t, vii: null, va: null }),
+    'Non-PBI (Mandiri) Kelas 1': t => ({ ve: null, vii: t, va: null }),
+    'Non-PBI (Mandiri) Kelas 2': t => ({ ve: null, vii: t, va: null }),
+    'Non-PBI (Mandiri) Kelas 3': t => ({ ve: t / 6, vii: t * 5 / 6, va: null }),
+    'Non-PBI (PNS) Gol.1 & 2': t => ({ ve: null, vii: null, va: t }),
+    'Non-PBI (PNS) Gol.3 & 4': t => ({ ve: null, vii: null, va: t }),
+  };
+
+  function bpjs(data, { jenis, art, bulan }) {
+    const baris = cari(data.bpjs, 'jenis', jenis);
+    if (!baris) return gagal('kosong');
+    const a = bacaAngka([art, bulan]);
+    if (a.error) return a.error;
+    const [nArt, nBulan] = a.nilai;
+    if (!Number.isInteger(nBulan) || nBulan < 1 || nBulan > 12) return gagal('bulan');
+    if (baris.biaya === null) return gagal('tarif');
+    const total = baris.biaya * nBulan * nArt;
+    const blok = (BLOK_BPJS[jenis] || (() => ({ ve: null, vii: null, va: null })))(total);
+    return { ok: true, nilai: total, blok };
+  }
+
+  // Jumlah tarif dari beberapa pilihan yang dicentang.
+  function jumlahCentang(tabel, kolomNama, dipilih) {
+    if (!dipilih || dipilih.length === 0) return gagal('kosong');
+    let nilai = 0;
+    const tanpaTarif = [];
+    for (const nama of dipilih) {
+      const baris = cari(tabel, kolomNama, nama);
+      if (!baris) continue;
+      if (baris.biaya === null) tanpaTarif.push(nama);
+      else nilai += baris.biaya;
+    }
+    if (tanpaTarif.length === dipilih.length) return gagal('tarif');
+    return { ok: true, nilai, tanpaTarif };
+  }
+
+  const imunisasi = (data, { jenis }) => jumlahCentang(data.imunisasi, 'jenis', jenis);
+  const pkh = (data, { kriteria }) => jumlahCentang(data.pkh, 'kriteria', kriteria);
+
+  function rawat(data, { keperluan, jenis }) {
+    const baris = data.rawat.find(r => r.keperluan === keperluan && r.jenis === jenis);
+    return kali(baris, 'biaya', []);
+  }
+
+  const LANGKAH_MELAHIRKAN = ['perawatan', 'pemeriksaan', 'fasilitas', 'rawat'];
+  const KUNJUNGAN_PERAWATAN = ['Pemeriksaan Kehamilan', 'Pasca Melahirkan'];
+
+  // Baris cocok bila tiap kolom yang sudah dipilih sama; kolom data null cocok dengan pilihan kosong.
+  function cocok(baris, pilihan, kolomDiperiksa) {
+    return kolomDiperiksa.every(k => {
+      const p = pilihan[k] || null;
+      return p === null ? true : baris[k] === p;
+    });
+  }
+
+  function opsiMelahirkan(data, pilihan, kolom) {
+    const sebelum = LANGKAH_MELAHIRKAN.slice(0, LANGKAH_MELAHIRKAN.indexOf(kolom));
+    const hasil = [];
+    for (const baris of data.melahirkan) {
+      if (!cocok(baris, pilihan, sebelum)) continue;
+      const v = baris[kolom];
+      if (v !== null && !hasil.includes(v)) hasil.push(v);
+    }
+    return hasil;
+  }
+
+  function melahirkan(data, pilihan) {
+    if (!pilihan.perawatan) return gagal('kosong');
+    const baris = data.melahirkan.find(r =>
+      LANGKAH_MELAHIRKAN.every(k => (r[k] === null ? !pilihan[k] : r[k] === pilihan[k])));
+    if (!baris) return gagal('tidak-cocok');
+    const pengali = KUNJUNGAN_PERAWATAN.includes(baris.perawatan) ? [pilihan.kunjungan] : [];
+    return kali(baris, 'biaya', pengali);
+  }
+
+  const api = {
+    parseAngka, formatRupiah, formatDesimal,
+    konversi, bos, pip, bpjs, imunisasi, rawat, melahirkan, opsiMelahirkan, KUNJUNGAN_PERAWATAN,
+    kb, listrik, pkh, rekening,
+  };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.KIUT_CALC = api;
