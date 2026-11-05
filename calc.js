@@ -11,7 +11,10 @@
   function parseAngka(teks) {
     if (typeof teks === 'number') return teks;
     if (typeof teks !== 'string') return NaN;
-    const t = teks.trim().replace(',', '.');
+    let t = teks.trim();
+    // "100.000" / "1.500.000,5" = titik ribuan (cara umum menulis Rupiah); selain itu titik/koma = desimal.
+    if (/^-?[1-9]\d{0,2}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+    else t = t.replace(',', '.');
     if (t === '' || !/^-?\d*\.?\d+$|^-?\d+\.$/.test(t)) return NaN;
     return Number(t);
   }

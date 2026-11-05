@@ -367,10 +367,14 @@
   const rute = () => (location.hash.replace(/^#/, '') || '/');
   const induk = r => (r.startsWith('/imputasi/') ? '/imputasi' : '/');
   const tumpukan = [];
+  let gantiPuncak = false; // true saat kembali memakai location.replace (riwayat tidak bertambah)
 
   function tampilkan() {
     const r = rute();
-    if (tumpukan.length > 1 && tumpukan[tumpukan.length - 2] === r) tumpukan.pop();
+    if (gantiPuncak) {
+      gantiPuncak = false;
+      tumpukan[Math.max(tumpukan.length - 1, 0)] = r;
+    } else if (tumpukan.length > 1 && tumpukan[tumpukan.length - 2] === r) tumpukan.pop();
     else if (tumpukan[tumpukan.length - 1] !== r) tumpukan.push(r);
 
     if (r === '/') layarBeranda();
@@ -383,7 +387,10 @@
 
   kembaliEl.addEventListener('click', () => {
     if (tumpukan.length > 1) history.back();
-    else location.replace('#' + induk(rute()));
+    else {
+      gantiPuncak = true;
+      location.replace('#' + induk(rute()));
+    }
   });
 
   window.addEventListener('hashchange', tampilkan);
@@ -391,8 +398,23 @@
 
   // ---------- offline ----------
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    // Bila halaman ini sudah dikendalikan versi lama, muat ulang sekali saat versi baru aktif
+    // agar tarif baru langsung dipakai. Kunjungan pertama (belum ada pengendali) tidak dimuat ulang.
+    const adaVersiLama = !!navigator.serviceWorker.controller;
+    let sudahMuatUlang = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!adaVersiLama || sudahMuatUlang) return;
+      sudahMuatUlang = true;
+      location.reload();
+    });
+
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => { /* tetap jalan online */ });
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Aplikasi yang dibuka lagi dari latar belakang ikut memeriksa versi baru.
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+      }).catch(() => { /* tetap jalan online */ });
     });
   }
 })();
