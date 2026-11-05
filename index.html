@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2b2b2b">
+  <meta name="description" content="KIUT – Konversi Satuan dan Imputasi Biaya, BPS Kabupaten Buru Selatan. Bisa dipakai offline.">
+  <title>KIUT – Konversi & Imputasi</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="bar">
+    <button type="button" class="kembali" id="kembali" aria-label="Kembali" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h1 id="judul">KIUT</h1>
+  </header>
+  <main id="app" tabindex="-1"></main>
+  <noscript><p class="catatan">KIUT membutuhkan JavaScript. Aktifkan JavaScript di browser Anda.</p></noscript>
+  <script src="./data.js"></script>
+  <script src="./calc.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
