@@ -192,7 +192,7 @@
     const tgl = formatTanggal(SESI.diperbarui());
     app.innerHTML = `
       <section class="sambutan">
-        ${ikon('imputasi', 'ikon logo')}
+        <img class="logo" src="./icons/icon-192.png" alt="Logo KIUT" width="96" height="96">
         <h2>KIUT</h2>
         <p>Konversi Satuan dan Imputasi Biaya<br>BPS Kabupaten Buru Selatan</p>
       </section>
@@ -230,13 +230,26 @@
     });
   }
 
+  // Layar penuh bergambar latar KIUT (seperti layar sync AppSheet), dipakai selama login.
+  function layarSinkron(tampil) {
+    let el = document.getElementById('layar-sinkron');
+    if (!tampil) { if (el) el.remove(); return; }
+    if (el) return;
+    el = document.createElement('div');
+    el.id = 'layar-sinkron';
+    el.className = 'layar-pembuka layar-sinkron';
+    el.setAttribute('role', 'status');
+    el.innerHTML = '<p class="pita-status"><span class="putar" aria-hidden="true"></span>Menyinkronkan data…</p>';
+    document.body.appendChild(el);
+  }
+
   function layarLogin() {
     judul('Masuk', false);
     const pesan = pesanLogin;
     pesanLogin = '';
     app.innerHTML = `
       <section class="sambutan">
-        ${ikon('imputasi', 'ikon logo')}
+        <img class="logo" src="./icons/icon-192.png" alt="Logo KIUT" width="96" height="96">
         <h2>KIUT</h2>
         <p>Konversi Satuan dan Imputasi Biaya<br>BPS Kabupaten Buru Selatan</p>
       </section>
@@ -260,7 +273,9 @@
       tombol.disabled = true;
       tombol.textContent = 'Memproses…';
       pesanEl.textContent = '';
+      layarSinkron(true);
       const r = await API.panggil('login', { username, password });
+      layarSinkron(false);
       tombol.disabled = false;
       tombol.textContent = 'Masuk';
       if (!r.ok) {

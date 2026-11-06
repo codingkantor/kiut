@@ -314,3 +314,29 @@ input:disabled { background: #f0f2f0; color: var(--redup); }
 .password-awal { display: flex; align-items: center; gap: 10px; margin: 12px 0; padding: 12px; background: #eef5ef; border-radius: 10px; }
 .password-awal code { flex: 1; font-size: 1.4rem; font-weight: 700; letter-spacing: .08em; overflow-wrap: anywhere; }
 .peringatan-teks { color: #7a4100; font-size: .9rem; }
+
+/* ---------- logo KIUT, layar pembuka & layar sinkron (gambar dari AppSheet KIUT_V3) ---------- */
+.sambutan img.logo { display: block; margin: 0 auto; width: 96px; height: 96px; border-radius: 20px; }
+.layar-pembuka {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0 16px calc(48px + env(safe-area-inset-bottom));
+  /* Poster 9:16 selalu utuh: HP yang lebih ramping → selebar layar dari atas (sisa bawah gelap);
+     layar yang lebih lebar → setinggi layar di tengah. Warna latar = warna jalur gelap poster. */
+  background: #353535 url('./icons/latar.jpg') top center / 100% auto no-repeat;
+}
+@media (min-aspect-ratio: 9/16) {
+  .layar-pembuka { background-position: center; background-size: auto 100%; }
+}
+.pita-status {
+  display: inline-flex; align-items: center; gap: 10px; margin: 0;
+  padding: 10px 18px; border-radius: 999px;
+  background: rgba(20, 20, 20, .78); color: #fff; font-weight: 600;
+}
+.putar {
+  width: 18px; height: 18px; flex: none;
+  border: 3px solid rgba(255, 255, 255, .35); border-top-color: #fff; border-radius: 50%;
+  animation: putar .9s linear infinite;
+}
+@keyframes putar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .putar { animation-duration: 3s; } }

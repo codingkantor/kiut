@@ -94,7 +94,7 @@ kiut/            file aplikasi (yang diunggah ke GitHub Pages)
 server/          kode Apps Script (Inti.js = logika, Kode.gs = adaptor Sheet, DataAwal.gs = data awal)
 data/data-awal.js  data awal dari KIUT_V3 (sumber DataAwal.gs)
 tests/           uji otomatis
-tools/           server-lokal.js (server uji), gabung_server.js, buat_data_awal.js, make_icons.py
+tools/           server-lokal.js (server uji), gabung_server.js, buat_data_awal.js, buat_ikon_logo.py (ikon dari assets/logo-kiut.png)
 ```
 
 Menjalankan uji (perlu Node.js 18+), dari folder proyek:
