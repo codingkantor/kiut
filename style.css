@@ -44,7 +44,7 @@ button, input, select { font: inherit; color: inherit; }
   background-repeat: no-repeat;
   background-position: bottom;
 }
-.bar h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar h1 { flex: 1; min-width: 0; margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kembali {
   width: 44px; height: 44px; margin-left: -8px;
   display: grid; place-items: center;
@@ -202,3 +202,45 @@ select {
 @media (min-width: 520px) {
   .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---------- menu pengguna (header) ---------- */
+.pengguna { position: relative; }
+.pengguna[hidden] { display: none; }
+.tombol-menu {
+  width: 44px; height: 44px; margin-right: -8px;
+  display: grid; place-items: center;
+  background: none; border: 0; border-radius: 50%; cursor: pointer;
+}
+.tombol-menu:active { background: rgba(255, 255, 255, .15); }
+.tombol-menu svg { width: 22px; height: 22px; fill: #fff; }
+.menu-pengguna {
+  position: absolute; right: 0; top: 48px; z-index: 10;
+  min-width: 220px; padding: 6px 0;
+  background: var(--kartu); color: var(--teks);
+  border-radius: 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, .2);
+}
+.menu-pengguna[hidden] { display: none; }
+.menu-pengguna .nama { margin: 0; padding: 8px 16px 10px; color: var(--redup); font-size: .88rem; border-bottom: 1px solid var(--garis); }
+.menu-pengguna button {
+  display: block; width: 100%; min-height: 44px; padding: 0 16px;
+  background: none; border: 0; text-align: left; font-size: 1rem; cursor: pointer;
+}
+.menu-pengguna button:active { background: #eef5ef; }
+
+/* ---------- formulir login / tombol utama ---------- */
+.tombol-utama {
+  width: 100%; min-height: 48px; margin-top: 14px;
+  background: var(--hijau); color: #fff;
+  border: 0; border-radius: 10px;
+  font-weight: 700; font-size: 1.05rem; cursor: pointer;
+}
+.tombol-utama:active { background: var(--hijau-tua); }
+.tombol-utama:disabled { opacity: .6; cursor: default; }
+.salah:empty { display: none; }
+input[type="password"] {
+  width: 100%; min-height: 48px; padding: 10px 12px;
+  background: #fff; border: 1.5px solid var(--garis); border-radius: 10px; font-size: 1.05rem;
+}
+input[type="password"]:focus { outline: none; border-color: var(--hijau); box-shadow: 0 0 0 3px rgba(35, 122, 60, .2); }
+.menu-besar a.admin { background: var(--gelap); }
+.versi.galat { color: var(--bahaya); margin-top: 4px; }

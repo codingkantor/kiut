@@ -17,10 +17,24 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
     <h1 id="judul">KIUT</h1>
+    <div class="pengguna" id="pengguna" hidden>
+      <button type="button" class="tombol-menu" id="tombol-menu" aria-label="Menu pengguna" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+      </button>
+      <div class="menu-pengguna" id="menu-pengguna" role="menu" hidden>
+        <p class="nama" id="nama-pengguna"></p>
+        <button type="button" role="menuitem" data-menu="ganti">Ganti password</button>
+        <button type="button" role="menuitem" data-menu="keluar">Keluar</button>
+      </div>
+    </div>
   </header>
   <main id="app" tabindex="-1"></main>
   <noscript><p class="catatan">KIUT membutuhkan JavaScript. Aktifkan JavaScript di browser Anda.</p></noscript>
+  <script src="./config.js"></script>
   <script src="./calc.js"></script>
+  <script src="./sesi.js"></script>
+  <script src="./api.js"></script>
+  <script src="./admin.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

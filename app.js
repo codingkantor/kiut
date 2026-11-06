@@ -1,9 +1,15 @@
-// Tampilan KIUT: router hash + render layar. Rumus ada di calc.js, data di data.js.
+// Tampilan KIUT: router hash + render layar.
+// Rumus di calc.js; data & sesi login di sesi.js (diambil dari server lewat api.js).
 (function () {
   'use strict';
 
-  const DATA = KIUT_DATA;
   const C = KIUT_CALC;
+  const SESI = KIUT_SESI;
+  const API = KIUT_API;
+  const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
+  let DATA = null;          // data tarif aktif (dari SESI.data())
+  let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
+  let pesanLogin = '';      // pesan yang ditampilkan di layar login berikutnya
   const app = document.getElementById('app');
   const judulEl = document.getElementById('judul');
   const kembaliEl = document.getElementById('kembali');
@@ -26,6 +32,7 @@
     listrik: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     pkh: '<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6M13 20c0-2.6 1.8-5 4-5s4 2.4 4 5"/>',
     rekening: '<path d="M3 9l9-5 9 5M4 9h16M5 9v9M9.5 9v9M14.5 9v9M19 9v9M3 21h18"/>',
+    admin: '<circle cx="9" cy="7" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5 1.3 0 2.5.4 3.5 1"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M17.5 12v1.5M17.5 19.5V21M13 16.5h1.5M20.5 16.5H22"/>',
   };
   const ikon = (nama, kelas = 'ikon') => `<svg class="${kelas}" viewBox="0 0 24 24" aria-hidden="true">${IKON[nama]}</svg>`;
 
@@ -174,8 +181,15 @@
   }
 
   // ---------- layar ----------
+  const formatTanggal = iso => {
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  };
+
   function layarBeranda() {
     judul('KIUT', false);
+    const akun = SESI.akun() || {};
+    const tgl = formatTanggal(SESI.diperbarui());
     app.innerHTML = `
       <section class="sambutan">
         ${ikon('imputasi', 'ikon logo')}
@@ -185,8 +199,94 @@
       <nav class="menu-besar">
         <a href="#/konversi">${ikon('konversi')}<div><strong>Konversi</strong><span>Satuan lokal → satuan standar</span></div></a>
         <a href="#/imputasi">${ikon('imputasi')}<div><strong>Imputasi</strong><span>BOS, PIP, BPJS, KB, listrik, dan lainnya</span></div></a>
+        ${akun.peran === 'admin' ? `<a href="#/admin" class="admin">${ikon('admin')}<div><strong>Admin</strong><span>Kelola akun dan data tarif</span></div></a>` : ''}
       </nav>
-      <p class="versi">Data versi ${esc(DATA.versi)} · bisa dipakai offline</p>`;
+      <p class="versi">${tgl ? `Data diperbarui: ${esc(tgl)} · ` : ''}bisa dipakai offline</p>
+      ${galatData ? '<p class="versi galat">Gagal memperbarui data</p>' : ''}`;
+  }
+
+  function layarLogin() {
+    judul('Masuk', false);
+    const pesan = pesanLogin;
+    pesanLogin = '';
+    app.innerHTML = `
+      <section class="sambutan">
+        ${ikon('imputasi', 'ikon logo')}
+        <h2>KIUT</h2>
+        <p>Konversi Satuan dan Imputasi Biaya<br>BPS Kabupaten Buru Selatan</p>
+      </section>
+      <form class="kartu" id="form-login" autocomplete="on" novalidate>
+        <div class="isian"><label for="f-username">Username</label>
+          <input type="text" id="f-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+        <div class="isian"><label for="f-password">Password</label>
+          <input type="password" id="f-password" name="password" autocomplete="current-password" required></div>
+        <p class="salah" id="pesan-login" role="alert">${esc(pesan)}</p>
+        <button type="submit" class="tombol-utama" id="tombol-masuk">Masuk</button>
+      </form>`;
+    const form = app.querySelector('#form-login');
+    const pesanEl = app.querySelector('#pesan-login');
+    const tombol = app.querySelector('#tombol-masuk');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const username = form.username.value.trim();
+      const password = form.password.value;
+      if (!username || !password) { pesanEl.textContent = 'Isi username dan password'; return; }
+      tombol.disabled = true;
+      tombol.textContent = 'Memproses…';
+      pesanEl.textContent = '';
+      const r = await API.panggil('login', { username, password });
+      tombol.disabled = false;
+      tombol.textContent = 'Masuk';
+      if (!r.ok) {
+        pesanEl.textContent = r.galat === 'jaringan' ? 'Tidak ada sinyal. Login pertama butuh internet' : (r.pesan || 'Terjadi kesalahan');
+        return;
+      }
+      for (const k of Object.keys(keadaan)) delete keadaan[k];
+      SESI.simpanLogin({ ...r, data: undefined });
+      terimaData(r);
+      alihkan(r.akun && r.akun.wajibGanti ? '#/ganti-password' : '#/');
+    });
+    app.querySelector('#f-username').focus();
+  }
+
+  function layarGantiPassword() {
+    const akun = SESI.akun() || {};
+    const wajib = !!akun.wajibGanti;
+    judul('Ganti password', !wajib);
+    app.innerHTML = `
+      <form class="kartu" id="form-ganti" novalidate>
+        ${wajib ? '<p class="keterangan">Anda wajib mengganti password sebelum memakai aplikasi.</p>' : ''}
+        <div class="isian"><label for="f-lama">Password lama</label>
+          <input type="password" id="f-lama" name="lama" autocomplete="current-password"></div>
+        <div class="isian"><label for="f-baru">Password baru (minimal 8 karakter)</label>
+          <input type="password" id="f-baru" name="baru" autocomplete="new-password"></div>
+        <div class="isian"><label for="f-ulang">Ulangi password baru</label>
+          <input type="password" id="f-ulang" name="ulang" autocomplete="new-password"></div>
+        <p class="salah" id="pesan-ganti" role="alert"></p>
+        <button type="submit" class="tombol-utama" id="tombol-ganti">Simpan password</button>
+      </form>`;
+    const form = app.querySelector('#form-ganti');
+    const pesanEl = app.querySelector('#pesan-ganti');
+    const tombol = app.querySelector('#tombol-ganti');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const lama = form.lama.value, baru = form.baru.value;
+      if (baru !== form.ulang.value) { pesanEl.textContent = 'Password baru tidak sama'; return; }
+      if (baru.length < 8) { pesanEl.textContent = 'Password baru minimal 8 karakter'; return; }
+      tombol.disabled = true;
+      pesanEl.textContent = '';
+      const r = await API.panggil('gantiPassword', { token: SESI.token(), lama, baru });
+      tombol.disabled = false;
+      if (!r.ok) {
+        if (r.galat === 'sesi-habis') return sesiBerakhir();
+        pesanEl.textContent = r.galat === 'jaringan' ? 'Tidak ada sinyal. Ganti password butuh internet'
+          : (r.kolom && r.kolom.baru) || r.pesan || 'Terjadi kesalahan';
+        return;
+      }
+      terimaData(r);
+      alihkan('#/');
+    });
+    app.querySelector('#f-lama').focus();
   }
 
   function layarImputasi() {
@@ -357,6 +457,86 @@
     setTimeout(() => { b.textContent = 'Salin'; }, 1500);
   });
 
+  // ---------- menu pengguna ----------
+  const penggunaEl = document.getElementById('pengguna');
+  const menuEl = document.getElementById('menu-pengguna');
+  const tombolMenu = document.getElementById('tombol-menu');
+
+  function perbaruiHeader(r) {
+    const akun = SESI.akun();
+    const tampil = !!akun && SESI.aktif() && r !== '/login';
+    penggunaEl.hidden = !tampil;
+    if (tampil) document.getElementById('nama-pengguna').textContent = `${akun.nama || akun.username} (${akun.peran})`;
+    menuEl.hidden = true;
+    tombolMenu.setAttribute('aria-expanded', 'false');
+  }
+
+  tombolMenu.addEventListener('click', () => {
+    menuEl.hidden = !menuEl.hidden;
+    tombolMenu.setAttribute('aria-expanded', String(!menuEl.hidden));
+  });
+  document.addEventListener('click', e => {
+    if (!menuEl.hidden && !penggunaEl.contains(e.target)) {
+      menuEl.hidden = true;
+      tombolMenu.setAttribute('aria-expanded', 'false');
+    }
+  });
+  menuEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-menu]');
+    if (!b) return;
+    menuEl.hidden = true;
+    if (b.dataset.menu === 'ganti') location.hash = '#/ganti-password';
+    if (b.dataset.menu === 'keluar') {
+      const token = SESI.token();
+      SESI.hapus();
+      for (const k of Object.keys(keadaan)) delete keadaan[k];
+      alihkan('#/login');
+      if (token) API.panggil('logout', { token }); // tidak ditunggu; data lokal sudah dihapus
+    }
+  });
+
+  // ---------- sesi & data dari server ----------
+  const dataSah = d => !!d && typeof d === 'object' && TABEL.every(t => Array.isArray(d[t]));
+
+  // Menyimpan respons login/sesi/gantiPassword; data yang tidak sah diabaikan (data lama tetap dipakai).
+  function terimaData(r) {
+    const salin = { ...r };
+    if (r.data !== undefined && !dataSah(r.data)) {
+      delete salin.data;
+      galatData = true;
+    } else if (r.data !== undefined) galatData = false;
+    SESI.perbarui(salin);
+  }
+
+  function sesiBerakhir() {
+    SESI.hapus();
+    for (const k of Object.keys(keadaan)) delete keadaan[k];
+    pesanLogin = 'Sesi berakhir, silakan login lagi';
+    alihkan('#/login');
+  }
+
+  let memeriksa = false;
+  async function periksaSesi() {
+    if (memeriksa || !SESI.aktif()) return;
+    memeriksa = true;
+    try {
+      const versiLama = SESI.versiData();
+      const wajibLama = !!(SESI.akun() || {}).wajibGanti;
+      const r = await API.panggil('sesi', { token: SESI.token(), versiData: versiLama });
+      if (!r.ok) {
+        if (r.galat === 'sesi-habis' || r.galat === 'dilarang') sesiBerakhir();
+        return; // jaringan/server: tetap offline dengan data lokal
+      }
+      const galatLama = galatData;
+      terimaData(r);
+      const wajibBaru = !!(SESI.akun() || {}).wajibGanti;
+      if (wajibBaru && !wajibLama) return alihkan('#/ganti-password');
+      if (SESI.versiData() !== versiLama || galatData !== galatLama) render();
+    } finally {
+      memeriksa = false;
+    }
+  }
+
   // ---------- router & tombol kembali ----------
   function judul(teks, adaKembali) {
     judulEl.textContent = teks;
@@ -365,9 +545,58 @@
   }
 
   const rute = () => (location.hash.replace(/^#/, '') || '/');
-  const induk = r => (r.startsWith('/imputasi/') ? '/imputasi' : '/');
+  const induk = r => (r.startsWith('/imputasi/') ? '/imputasi' : r.startsWith('/admin/') ? '/admin' : '/');
   const tumpukan = [];
-  let gantiPuncak = false; // true saat kembali memakai location.replace (riwayat tidak bertambah)
+  let gantiPuncak = false; // true saat pindah memakai location.replace (riwayat tidak bertambah)
+
+  // Pindah rute tanpa menambah riwayat (pengalihan, atau tombol kembali tanpa riwayat).
+  function alihkan(hash) {
+    if (location.hash === hash || (hash === '#/' && rute() === '/')) return render();
+    gantiPuncak = true;
+    location.replace(hash);
+  }
+
+  function render() {
+    const r = rute();
+    perbaruiHeader(r);
+    const akun = SESI.akun() || {};
+    const aktif = SESI.aktif();
+
+    if (r === '/login') {
+      if (aktif) return alihkan(akun.wajibGanti ? '#/ganti-password' : '#/');
+      return layarLogin();
+    }
+    if (!aktif) {
+      if (SESI.token()) SESI.hapus(); // sesi di HP sudah kedaluwarsa
+      return alihkan('#/login');
+    }
+    if (akun.wajibGanti && r !== '/ganti-password') return alihkan('#/ganti-password');
+    if (r === '/ganti-password') return layarGantiPassword();
+
+    DATA = SESI.data();
+    if (!dataSah(DATA)) {
+      judul('KIUT', false);
+      app.innerHTML = '<section class="kartu"><p>Data belum tersedia di HP ini. Hubungkan ke internet lalu buka ulang aplikasi.</p></section>';
+      return;
+    }
+
+    if (r === '/admin' || r.startsWith('/admin/')) {
+      if (akun.peran !== 'admin') return alihkan('#/');
+      const sub = r === '/admin' ? '' : r.slice('/admin/'.length);
+      if (window.KIUT_ADMIN) return window.KIUT_ADMIN.tampilkan(app, konteks, sub);
+      judul('Admin', true);
+      app.innerHTML = '<section class="kartu"><p>Halaman admin segera hadir.</p></section>';
+      return;
+    }
+    if (r === '/') layarBeranda();
+    else if (r === '/konversi') layarKonversi();
+    else if (r === '/imputasi') layarImputasi();
+    else if (r.startsWith('/imputasi/')) layarKalkulator(r.slice('/imputasi/'.length));
+    else layarTidakAda();
+  }
+
+  // Dipakai admin.js.
+  const konteks = { sesi: SESI, api: API, judul, ulang: render, periksaSesi, sesiBerakhir, esc, rp, C };
 
   function tampilkan() {
     const r = rute();
@@ -376,25 +605,21 @@
       tumpukan[Math.max(tumpukan.length - 1, 0)] = r;
     } else if (tumpukan.length > 1 && tumpukan[tumpukan.length - 2] === r) tumpukan.pop();
     else if (tumpukan[tumpukan.length - 1] !== r) tumpukan.push(r);
-
-    if (r === '/') layarBeranda();
-    else if (r === '/konversi') layarKonversi();
-    else if (r === '/imputasi') layarImputasi();
-    else if (r.startsWith('/imputasi/')) layarKalkulator(r.slice('/imputasi/'.length));
-    else layarTidakAda();
+    render();
     window.scrollTo(0, 0);
   }
 
   kembaliEl.addEventListener('click', () => {
     if (tumpukan.length > 1) history.back();
-    else {
-      gantiPuncak = true;
-      location.replace('#' + induk(rute()));
-    }
+    else alihkan('#' + induk(rute()));
   });
 
   window.addEventListener('hashchange', tampilkan);
   tampilkan();
+  periksaSesi();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') periksaSesi();
+  });
 
   // ---------- offline ----------
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
