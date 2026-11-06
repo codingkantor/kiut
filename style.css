@@ -242,6 +242,16 @@ input[type="password"] {
   background: #fff; border: 1.5px solid var(--garis); border-radius: 10px; font-size: 1.05rem;
 }
 input[type="password"]:focus { outline: none; border-color: var(--hijau); box-shadow: 0 0 0 3px rgba(35, 122, 60, .2); }
+/* Kolom password dengan tombol "Lihat" di dalamnya. */
+.isian-password { position: relative; }
+.isian-password input { padding-right: 116px; }
+.lihat-password {
+  position: absolute; top: 2px; right: 2px; bottom: 2px;
+  min-width: 44px; padding: 0 12px;
+  background: none; border: 0; border-radius: 8px;
+  color: var(--hijau-tua); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer;
+}
+.lihat-password:focus-visible { outline: 2px solid var(--hijau); outline-offset: -2px; }
 .menu-besar a.admin { background: var(--gelap); }
 .versi.galat { color: var(--bahaya); margin-top: 4px; }
 

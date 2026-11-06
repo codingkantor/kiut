@@ -65,8 +65,16 @@
     }
 
     // Panggil API; tangani sesi habis & jaringan secara seragam.
-    async function panggil(aksi, data) {
-      const r = await k.api.panggil(aksi, { token: k.sesi.token(), ...data });
+    // Bila `tombol` diberikan, tombol itu dimatikan dan bertuliskan "Memproses…" selama menunggu server.
+    async function panggil(aksi, data, tombol) {
+      const asli = tombol ? tombol.textContent : '';
+      if (tombol) { tombol.disabled = true; tombol.textContent = 'Memproses…'; }
+      let r;
+      try {
+        r = await k.api.panggil(aksi, { token: k.sesi.token(), ...data });
+      } finally {
+        if (tombol) { tombol.disabled = false; tombol.textContent = asli; }
+      }
       if (!r.ok && (r.galat === 'sesi-habis')) { k.sesiBerakhir(); return null; }
       setOffline(!r.ok && r.galat === 'jaringan');
       return r;
@@ -135,9 +143,7 @@
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const tombol = form.querySelector('button[type="submit"]');
-        tombol.disabled = true;
-        const r = await panggil('akunTambah', { nama: form.nama.value, username: form.username.value, peran: form.peran.value });
-        tombol.disabled = false;
+        const r = await panggil('akunTambah', { nama: form.nama.value, username: form.username.value, peran: form.peran.value }, tombol);
         if (!r) return;
         tampilkanGalat(form, r);
         if (!r.ok) return;
@@ -202,7 +208,7 @@
         if (b.dataset.aksi === 'batal') { st.akunEdit = null; return gambarDaftar(); }
         if (b.dataset.aksi === 'reset') {
           if (!confirm(`Reset password ${a.nama} (${username})? Password lama tidak berlaku lagi dan ia akan keluar dari semua HP.`)) return;
-          const r = await panggil('akunReset', { username });
+          const r = await panggil('akunReset', { username }, b);
           if (!r) return;
           if (!r.ok) { pesanEl.textContent = r.galat === 'jaringan' ? 'Gagal menyimpan, coba lagi' : r.pesan; return; }
           dialogPassword('Password direset', username, r.passwordBaru);
@@ -211,7 +217,7 @@
         if (b.dataset.aksi === 'aktif') {
           const aktif = !a.aktif;
           if (!confirm(aktif ? `Aktifkan kembali akun ${a.nama}?` : `Nonaktifkan akun ${a.nama}? Ia akan keluar dari aplikasi saat HP-nya online.`)) return;
-          const r = await panggil('akunAktif', { username, aktif });
+          const r = await panggil('akunAktif', { username, aktif }, b);
           if (!r) return;
           if (!r.ok) { pesanEl.textContent = r.galat === 'jaringan' ? 'Gagal menyimpan, coba lagi' : r.pesan; return; }
           return muatDaftar();
@@ -222,7 +228,7 @@
         e.preventDefault();
         const f = e.target;
         const username = f.closest('[data-username]').dataset.username;
-        const r = await panggil('akunUbah', { username, nama: f.nama.value, peran: f.peran.value });
+        const r = await panggil('akunUbah', { username, nama: f.nama.value, peran: f.peran.value }, f.querySelector('button[type="submit"]'));
         if (!r) return;
         tampilkanGalat(f, r);
         if (!r.ok) return;
@@ -381,7 +387,7 @@
       const hapus = isi.querySelector('#hapus-baris');
       if (hapus) hapus.addEventListener('click', async () => {
         if (!confirm('Hapus baris ini? Petugas tidak akan melihatnya lagi setelah HP mereka online.')) return;
-        const r = await panggil('dataHapus', { tabel, id: edit.baris.id });
+        const r = await panggil('dataHapus', { tabel, id: edit.baris.id }, hapus);
         if (!r) return;
         if (!r.ok && r.galat === 'tidak-ada') return sudahBerubah(r);
         if (!r.ok) return tampilkanGalat(form, r);
@@ -390,11 +396,9 @@
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const tombol = form.querySelector('button[type="submit"]');
-        tombol.disabled = true;
         const isian = ambil();
         edit.baris = { ...edit.baris, ...isian };
-        const r = await panggil('dataSimpan', { tabel, baris: isian });
-        tombol.disabled = false;
+        const r = await panggil('dataSimpan', { tabel, baris: isian }, tombol);
         if (!r) return;
         if (!r.ok && r.galat === 'tidak-ada') return sudahBerubah(r);
         if (!r.ok) return tampilkanGalat(form, r);

@@ -205,6 +205,31 @@
       ${galatData ? '<p class="versi galat">Gagal memperbarui data</p>' : ''}`;
   }
 
+  // Tombol "Lihat" di samping setiap kolom password: menampilkan/menyembunyikan isi.
+  function pasangLihatPassword(akar) {
+    akar.querySelectorAll('input[type="password"]').forEach(inp => {
+      const bungkus = document.createElement('div');
+      bungkus.className = 'isian-password';
+      inp.parentNode.insertBefore(bungkus, inp);
+      bungkus.appendChild(inp);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lihat-password';
+      b.textContent = 'Lihat';
+      b.setAttribute('aria-pressed', 'false');
+      b.setAttribute('aria-label', 'Tampilkan password');
+      b.addEventListener('click', () => {
+        const tampil = inp.type === 'password';
+        inp.type = tampil ? 'text' : 'password';
+        b.textContent = tampil ? 'Sembunyikan' : 'Lihat';
+        b.setAttribute('aria-pressed', String(tampil));
+        b.setAttribute('aria-label', tampil ? 'Sembunyikan password' : 'Tampilkan password');
+        inp.focus();
+      });
+      bungkus.appendChild(b);
+    });
+  }
+
   function layarLogin() {
     judul('Masuk', false);
     const pesan = pesanLogin;
@@ -224,6 +249,7 @@
         <button type="submit" class="tombol-utama" id="tombol-masuk">Masuk</button>
       </form>`;
     const form = app.querySelector('#form-login');
+    pasangLihatPassword(form);
     const pesanEl = app.querySelector('#pesan-login');
     const tombol = app.querySelector('#tombol-masuk');
     form.addEventListener('submit', async e => {
@@ -266,6 +292,7 @@
         <button type="submit" class="tombol-utama" id="tombol-ganti">Simpan password</button>
       </form>`;
     const form = app.querySelector('#form-ganti');
+    pasangLihatPassword(form);
     const pesanEl = app.querySelector('#pesan-ganti');
     const tombol = app.querySelector('#tombol-ganti');
     form.addEventListener('submit', async e => {
@@ -273,10 +300,13 @@
       const lama = form.lama.value, baru = form.baru.value;
       if (baru !== form.ulang.value) { pesanEl.textContent = 'Password baru tidak sama'; return; }
       if (baru.length < 8) { pesanEl.textContent = 'Password baru minimal 8 karakter'; return; }
+      if (baru !== baru.trim()) { pesanEl.textContent = 'Password baru tidak boleh diawali atau diakhiri spasi'; return; }
       tombol.disabled = true;
+      tombol.textContent = 'Memproses…';
       pesanEl.textContent = '';
       const r = await API.panggil('gantiPassword', { token: SESI.token(), lama, baru });
       tombol.disabled = false;
+      tombol.textContent = 'Simpan password';
       if (!r.ok) {
         if (r.galat === 'sesi-habis') return sesiBerakhir();
         pesanEl.textContent = r.galat === 'jaringan' ? 'Tidak ada sinyal. Ganti password butuh internet'
