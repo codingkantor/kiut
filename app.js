@@ -473,7 +473,9 @@
 
   // ---------- tombol salin ----------
   app.addEventListener('click', async e => {
-    const b = e.target.closest('.salin');
+    // Hanya tombol salin hasil kalkulator (yang membawa data-salin). Tombol Salin di dialog
+    // password admin punya penangannya sendiri; tanpa batasan ini clipboard tertimpa "undefined".
+    const b = e.target.closest('.salin[data-salin]');
     if (!b) return;
     const teks = b.dataset.salin;
     try {
