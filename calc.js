@@ -59,7 +59,22 @@
     const h = kali(baris, 'faktor', [banyak]);
     if (!h.ok) return h;
     const b = parseAngka(banyak);
-    return { ...h, satuan: baris.standar, rincian: `${formatDesimal(b)} ${baris.lokal} × ${formatDesimal(baris.faktor)}` };
+    const hasil = { ...h, satuan: baris.standar, rincian: `${formatDesimal(b)} ${baris.lokal} × ${formatDesimal(baris.faktor)}`,
+      harga: rentangHarga(baris), nilaiHarga: null, rincianHarga: '' };
+    if (hasil.harga) {
+      const { min, maks } = hasil.harga;
+      hasil.nilaiHarga = { min: Math.round(h.nilai * min), maks: Math.round(h.nilai * maks) };
+      hasil.rincianHarga = `${formatDesimal(h.nilai)} ${baris.standar} × ${formatRupiah(min)}${maks !== min ? ` – ${formatRupiah(maks)}` : ''}`;
+    }
+    return hasil;
+  }
+
+  // Harga acuan per satuan standar: { min, maks } atau null bila belum ada.
+  // Satu harga saja → min = maks. Bila tertukar (diedit langsung di Sheet), diurutkan.
+  function rentangHarga(baris) {
+    const ada = [baris.hargaMin, baris.hargaMaks].filter(v => typeof v === 'number' && isFinite(v) && v >= 0);
+    if (!ada.length) return null;
+    return { min: Math.min(...ada), maks: Math.max(...ada) };
   }
 
   const bos = (data, { jenjang, art }) => kali(cari(data.bos, 'jenjang', jenjang), 'biaya', [art]);

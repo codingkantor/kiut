@@ -13,15 +13,19 @@
     MANDIRI_3: 'Mandiri Kelas 3 (V.E 1/6 + VII 5/6)',
     PNS: 'PNS (Blok VA)',
   };
-  const RUPIAH = ['biaya', 'tarif', 'admin', 'debit'];
+  const RUPIAH = ['biaya', 'tarif', 'admin', 'debit', 'hargaMin', 'hargaMaks'];
 
   // Kolom formulir per tabel (selaras dengan Inti.SKEMA di server).
   const T = (nama, label) => ({ nama, label, tipe: 'teks', wajib: true });
   const O = (nama, label) => ({ nama, label, tipe: 'teks', wajib: false });
-  const A = (nama, label, bolehNull) => ({ nama, label, tipe: 'angka', bolehNull });
+  const A = (nama, label, bolehNull) => ({ nama, label, tipe: 'angka', bolehNull, labelKosong: 'Tarif belum tersedia', centang: true });
+  // Harga acuan: boleh kosong, tanpa centang. Isian dikosongkan = harga belum tersedia.
+  const H = (nama, label) => ({ nama, label, tipe: 'angka', bolehNull: true, labelKosong: 'Belum ada', centang: false });
   const B = (nama, label) => ({ nama, label, tipe: 'boolean' });
   const SKEMA_FORM = {
-    konversi: [T('komoditi', 'Komoditi'), T('lokal', 'Satuan lokal'), T('standar', 'Satuan standar'), A('faktor', 'Faktor konversi', false)],
+    konversi: [T('komoditi', 'Komoditi'), T('lokal', 'Satuan lokal'), T('standar', 'Satuan standar'), A('faktor', 'Faktor konversi', false),
+      H('hargaMin', 'Harga terendah per satuan standar (Rp, boleh kosong)'),
+      H('hargaMaks', 'Harga tertinggi per satuan standar (Rp, boleh kosong)')],
     bos: [T('jenjang', 'Jenjang'), A('biaya', 'Biaya per tahun (Rp)', true)],
     pip: [T('jenjang', 'Jenjang'), A('biaya', 'Biaya per semester (Rp)', true)],
     bpjs: [T('jenis', 'Jenis'), A('biaya', 'Iuran per bulan (Rp)', true), { nama: 'blok', label: 'Pembagian blok BPJS', tipe: 'blok' }],
@@ -259,7 +263,7 @@
     }
 
     function tampilNilai(kol, v) {
-      if (v === null || v === undefined || v === '') return kol.tipe === 'angka' ? 'tarif belum tersedia' : '—';
+      if (v === null || v === undefined || v === '') return kol.tipe === 'angka' ? kol.labelKosong.toLowerCase() : '—';
       if (kol.tipe === 'angka') return RUPIAH.includes(kol.nama) ? k.rp(v) : k.C.formatDesimal(v);
       if (kol.tipe === 'boolean') return v ? 'ya' : 'tidak';
       if (kol.tipe === 'blok') return LABEL_BLOK[v] || v;
@@ -340,11 +344,11 @@
                   `<option value="${kode}"${v === kode ? ' selected' : ''}>${esc(lab)}</option>`).join('')}</select>
                 <p class="salah" data-kolom="${c.nama}"></p></div>`;
             }
-            const kosong = c.tipe === 'angka' && c.bolehNull && !baru && (v === null || v === undefined);
+            const kosong = c.tipe === 'angka' && c.bolehNull && c.centang && !baru && (v === null || v === undefined);
             return `<div class="isian"><label for="${id}">${esc(c.label)}</label>
               <input type="text" id="${id}" name="${c.nama}" ${c.tipe === 'angka' ? 'inputmode="decimal"' : ''} autocomplete="off"
                 value="${v === null || v === undefined ? '' : esc(c.tipe === 'angka' ? String(v).replace('.', ',') : v)}"${kosong ? ' disabled' : ''}>
-              ${c.tipe === 'angka' && c.bolehNull ? `<label class="centang-satu kecil"><input type="checkbox" data-null="${c.nama}"${kosong ? ' checked' : ''}> Tarif belum tersedia</label>` : ''}
+              ${c.tipe === 'angka' && c.bolehNull && c.centang ? `<label class="centang-satu kecil"><input type="checkbox" data-null="${c.nama}"${kosong ? ' checked' : ''}> ${esc(c.labelKosong)}</label>` : ''}
               <p class="salah" data-kolom="${c.nama}"></p></div>`;
           }).join('')}
           <p class="salah" data-umum></p>

@@ -446,8 +446,22 @@
     function gambarHasil() {
       const i = idxTerpilih();
       const h = C.konversi(DATA, { idx: i < 0 ? '' : i, banyak: v.banyak });
-      hasilEl.innerHTML = htmlHasil(h, h.ok ? [{ label: 'Hasil', teks: `${C.formatDesimal(h.nilai)} ${h.satuan}`, nilai: h.nilai }] : [],
-        h.ok ? `<p class="rincian">${esc(h.rincian)}</p>` : '');
+      if (!h.ok) { hasilEl.innerHTML = htmlHasil(h, []); return; }
+      const baris = [{ label: 'Hasil', teks: `${C.formatDesimal(h.nilai)} ${h.satuan}`, nilai: h.nilai }];
+      let ekstra = `<p class="rincian">${esc(h.rincian)}</p>`;
+      if (h.nilaiHarga) {
+        const { min, maks } = h.nilaiHarga;
+        if (min === maks) baris.push({ label: 'Nilai (harga acuan)', teks: rp(min), nilai: min });
+        else {
+          baris.push({ label: 'Nilai terendah', teks: rp(min), nilai: min });
+          baris.push({ label: 'Nilai tertinggi', teks: rp(maks), nilai: maks });
+        }
+        const hg = h.harga.min === h.harga.maks ? rp(h.harga.min) : `${rp(h.harga.min)} – ${rp(h.harga.maks)}`;
+        ekstra += `<p class="rincian">Harga acuan: ${esc(hg)} per ${esc(h.satuan)}<br>${esc(h.rincianHarga)}</p>`;
+      } else {
+        ekstra += '<p class="rincian">Harga acuan belum tersedia</p>';
+      }
+      hasilEl.innerHTML = htmlHasil(h, baris, ekstra);
     }
 
     pilihEl.addEventListener('input', e => {
