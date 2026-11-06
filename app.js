@@ -99,7 +99,7 @@
         { id: 'fasilitas', label: 'Fasilitas kesehatan', tipe: 'pilih', opsi: v => C.opsiMelahirkan(DATA, v, 'fasilitas'), hapus: ['rawat'],
           tampil: v => !!v.perawatan && (!!v.pemeriksaan || C.opsiMelahirkan(DATA, v, 'pemeriksaan').length === 0) },
         { id: 'rawat', label: 'Jenis rawat', tipe: 'pilih', opsi: v => C.opsiMelahirkan(DATA, v, 'rawat'), tampil: v => !!v.fasilitas },
-        { id: 'kunjungan', label: 'Banyak kunjungan', tipe: 'angka', awal: '1', tampil: v => C.KUNJUNGAN_PERAWATAN.includes(v.perawatan) },
+        { id: 'kunjungan', label: 'Banyak kunjungan', tipe: 'angka', awal: '1', tampil: v => C.perluKunjungan(DATA, v) },
       ],
       hitung: v => C.melahirkan(DATA, v),
       labelHasil: 'Total biaya',

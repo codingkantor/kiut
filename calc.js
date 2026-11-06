@@ -90,14 +90,13 @@
     return { ok: true, nilai: admin + debit, rincian: `Administrasi ${formatRupiah(admin)} + Kartu debit ${formatRupiah(debit)}` };
   }
 
-  // Pembagian total BPJS ke blok kuesioner (sesuai KIUT_V3).
-  const BLOK_BPJS = {
-    'PBI': t => ({ ve: t, vii: null, va: null }),
-    'Non-PBI (Mandiri) Kelas 1': t => ({ ve: null, vii: t, va: null }),
-    'Non-PBI (Mandiri) Kelas 2': t => ({ ve: null, vii: t, va: null }),
-    'Non-PBI (Mandiri) Kelas 3': t => ({ ve: t / 6, vii: t * 5 / 6, va: null }),
-    'Non-PBI (PNS) Gol.1 & 2': t => ({ ve: null, vii: null, va: t }),
-    'Non-PBI (PNS) Gol.3 & 4': t => ({ ve: null, vii: null, va: t }),
+  // Pembagian total BPJS ke blok kuesioner, menurut kolom `blok` pada data.
+  const BLOK = ['PBI', 'MANDIRI_12', 'MANDIRI_3', 'PNS'];
+  const BAGI_BLOK = {
+    PBI: t => ({ ve: t, vii: null, va: null }),
+    MANDIRI_12: t => ({ ve: null, vii: t, va: null }),
+    MANDIRI_3: t => ({ ve: t / 6, vii: t * 5 / 6, va: null }),
+    PNS: t => ({ ve: null, vii: null, va: t }),
   };
 
   function bpjs(data, { jenis, art, bulan }) {
@@ -109,7 +108,7 @@
     if (!Number.isInteger(nBulan) || nBulan < 1 || nBulan > 12) return gagal('bulan');
     if (baris.biaya === null) return gagal('tarif');
     const total = baris.biaya * nBulan * nArt;
-    const blok = (BLOK_BPJS[jenis] || (() => ({ ve: null, vii: null, va: null })))(total);
+    const blok = (BAGI_BLOK[baris.blok] || (() => ({ ve: null, vii: null, va: null })))(total);
     return { ok: true, nilai: total, blok };
   }
 
@@ -137,7 +136,6 @@
   }
 
   const LANGKAH_MELAHIRKAN = ['perawatan', 'pemeriksaan', 'fasilitas', 'rawat'];
-  const KUNJUNGAN_PERAWATAN = ['Pemeriksaan Kehamilan', 'Pasca Melahirkan'];
 
   // Baris cocok bila tiap kolom yang sudah dipilih sama; kolom data null cocok dengan pilihan kosong.
   function cocok(baris, pilihan, kolomDiperiksa) {
@@ -163,13 +161,18 @@
     const baris = data.melahirkan.find(r =>
       LANGKAH_MELAHIRKAN.every(k => (r[k] === null ? !pilihan[k] : r[k] === pilihan[k])));
     if (!baris) return gagal('tidak-cocok');
-    const pengali = KUNJUNGAN_PERAWATAN.includes(baris.perawatan) ? [pilihan.kunjungan] : [];
+    const pengali = baris.perKunjungan ? [pilihan.kunjungan] : [];
     return kali(baris, 'biaya', pengali);
+  }
+
+  // Isian "banyak kunjungan" perlu ditampilkan bila perawatan terpilih punya baris perKunjungan.
+  function perluKunjungan(data, pilihan) {
+    return !!pilihan.perawatan && data.melahirkan.some(r => r.perawatan === pilihan.perawatan && r.perKunjungan);
   }
 
   const api = {
     parseAngka, formatRupiah, formatDesimal,
-    konversi, bos, pip, bpjs, imunisasi, rawat, melahirkan, opsiMelahirkan, KUNJUNGAN_PERAWATAN,
+    konversi, bos, pip, bpjs, BLOK, imunisasi, rawat, melahirkan, opsiMelahirkan, perluKunjungan,
     kb, listrik, pkh, rekening,
   };
 
