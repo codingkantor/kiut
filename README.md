@@ -33,6 +33,10 @@ Di setiap kalkulator, hasil langsung berubah saat angka diketik. Tombol **Salin*
 
 Menu nama pengguna (kanan atas) berisi **Ganti password** dan **Keluar**.
 
+Tombol **⟳** (kanan atas) memaksa HP mengambil data terbaru dari server dan memasang versi aplikasi
+terbaru bila ada. Bila tidak ada sinyal atau koneksi lambat (lebih dari 15 detik), hanya muncul pesan
+gagal dan data di HP tetap dipakai. Nomor versi aplikasi tertulis di bagian bawah Beranda.
+
 ## 2. Cara menaruh di GitHub Pages (sekali saja)
 
 Sebelumnya server harus sudah disiapkan: lihat [docs/PANDUAN-SERVER.md](../docs/PANDUAN-SERVER.md).
@@ -40,7 +44,7 @@ Sebelumnya server harus sudah disiapkan: lihat [docs/PANDUAN-SERVER.md](../docs/
 1. Masuk ke <https://github.com> (buat akun gratis bila belum punya).
 2. Klik **New repository**, beri nama `kiut`, pilih **Public**, lalu **Create repository**.
 3. Klik **uploading an existing file**, lalu seret **semua isi folder `kiut/`** (`index.html`, `app.js`,
-   `admin.js`, `api.js`, `sesi.js`, `config.js`, `calc.js`, `style.css`, `sw.js`, `manifest.json`,
+   `admin.js`, `api.js`, `sesi.js`, `sinkron.js`, `config.js`, `calc.js`, `style.css`, `sw.js`, `manifest.json`,
    `README.md`, dan folder `icons`) ke halaman itu. Klik **Commit changes**.
 4. Buka **Settings** → **Pages**. Di *Build and deployment*, pilih **Deploy from a branch**,
    branch **main**, folder **/ (root)**, lalu **Save**.
@@ -48,7 +52,7 @@ Sebelumnya server harus sudah disiapkan: lihat [docs/PANDUAN-SERVER.md](../docs/
    Bagikan link ini ke petugas.
 
 Setiap kali mengunggah versi baru file aplikasi, naikkan angka `CACHE` di `sw.js`
-(mis. `'kiut-app-7'` → `'kiut-app-8'`) supaya HP mengambil versi baru.
+(mis. `'kiut-app-8'` → `'kiut-app-9'`) dan angka `VERSI_APP` di `app.js` ke angka yang sama supaya HP mengambil versi baru.
 
 ## 3. Cara mengelola akun dan data
 
@@ -92,6 +96,7 @@ kiut/            file aplikasi (yang diunggah ke GitHub Pages)
   calc.js        rumus (fungsi murni)
   sesi.js        penyimpanan sesi & data di HP
   api.js         klien server
+  sinkron.js     tombol sinkron ⟳ (data & versi terbaru, dengan batas waktu)
   app.js         tampilan, login, navigasi
   admin.js       halaman admin
   sw.js          service worker (offline)

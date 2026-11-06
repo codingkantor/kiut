@@ -18,6 +18,9 @@
     </button>
     <h1 id="judul">KIUT</h1>
     <div class="pengguna" id="pengguna" hidden>
+      <button type="button" class="tombol-menu tombol-sinkron" id="tombol-sinkron" aria-label="Sinkronkan data" title="Sinkronkan data">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+      </button>
       <button type="button" class="tombol-menu" id="tombol-menu" aria-label="Menu pengguna" aria-haspopup="true" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
       </button>
@@ -31,11 +34,13 @@
   <main id="app" tabindex="-1">
     <div class="layar-pembuka" role="status"><p class="pita-status">Memuat…</p></div>
   </main>
+  <div class="pesan-kilat" id="pesan-kilat" role="status" aria-live="polite" hidden></div>
   <noscript><p class="catatan">KIUT membutuhkan JavaScript. Aktifkan JavaScript di browser Anda.</p></noscript>
   <script src="./config.js"></script>
   <script src="./calc.js"></script>
   <script src="./sesi.js"></script>
   <script src="./api.js"></script>
+  <script src="./sinkron.js"></script>
   <script src="./admin.js"></script>
   <script src="./app.js"></script>
 </body>

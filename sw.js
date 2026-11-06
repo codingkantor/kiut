@@ -1,7 +1,7 @@
 // Service worker KIUT: menyimpan semua file agar aplikasi bisa dipakai offline.
 // Setiap kali file aplikasi diubah, naikkan angka CACHE agar HP mengambil versi baru.
 // (Data tarif tidak lagi di sini; data diambil dari server.)
-const CACHE = 'kiut-app-7';
+const CACHE = 'kiut-app-8';
 
 const ASSETS = [
   './',
@@ -11,6 +11,7 @@ const ASSETS = [
   './calc.js',
   './sesi.js',
   './api.js',
+  './sinkron.js',
   './admin.js',
   './app.js',
   './manifest.json',

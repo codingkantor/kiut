@@ -6,6 +6,8 @@
   const C = KIUT_CALC;
   const SESI = KIUT_SESI;
   const API = KIUT_API;
+  // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
+  const VERSI_APP = 8;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -201,7 +203,7 @@
         <a href="#/imputasi">${ikon('imputasi')}<div><strong>Imputasi</strong><span>BOS, PIP, BPJS, KB, listrik, dan lainnya</span></div></a>
         ${akun.peran === 'admin' ? `<a href="#/admin" class="admin">${ikon('admin')}<div><strong>Admin</strong><span>Kelola akun dan data tarif</span></div></a>` : ''}
       </nav>
-      <p class="versi">${tgl ? `Data diperbarui: ${esc(tgl)} · ` : ''}bisa dipakai offline</p>
+      <p class="versi">${tgl ? `Data diperbarui: ${esc(tgl)} · ` : ''}bisa dipakai offline<br>Versi aplikasi ${VERSI_APP}</p>
       ${galatData ? '<p class="versi galat">Gagal memperbarui data</p>' : ''}`;
   }
 
@@ -684,6 +686,70 @@
   periksaSesi();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') periksaSesi();
+  });
+
+  // ---------- tombol sinkron (⟳) ----------
+  const tombolSinkron = document.getElementById('tombol-sinkron');
+  const pesanKilatEl = document.getElementById('pesan-kilat');
+  let waktuPesan = null;
+
+  function pesanKilat(teks, gagal) {
+    clearTimeout(waktuPesan);
+    pesanKilatEl.textContent = teks;
+    pesanKilatEl.classList.toggle('gagal', !!gagal);
+    pesanKilatEl.hidden = false;
+    waktuPesan = setTimeout(() => { pesanKilatEl.hidden = true; }, gagal ? 6000 : 3500);
+  }
+
+  // Memeriksa service worker baru. 'baru' bila versi baru sudah aktif (halaman akan dimuat ulang).
+  async function periksaVersi() {
+    if (!('serviceWorker' in navigator)) return 'sama';
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return 'sama';
+    await reg.update();
+    const baru = reg.installing || reg.waiting;
+    if (!baru) return 'sama';
+    if (baru.state !== 'activated') {
+      await new Promise(selesai => baru.addEventListener('statechange', () => {
+        if (baru.state === 'activated' || baru.state === 'redundant') selesai();
+      }));
+    }
+    return baru.state === 'activated' ? 'baru' : 'sama';
+  }
+
+  tombolSinkron.addEventListener('click', async () => {
+    if (tombolSinkron.disabled) return;
+    tombolSinkron.disabled = true;
+    tombolSinkron.classList.add('berjalan');
+    tombolSinkron.setAttribute('aria-busy', 'true');
+    try {
+      const versiLama = SESI.versiData();
+      const wajibLama = !!(SESI.akun() || {}).wajibGanti;
+      const h = await KIUT_SINKRON.sinkron({
+        online: () => navigator.onLine !== false,
+        token: SESI.token(),
+        versiData: versiLama,
+        panggil: (aksi, isi) => API.panggil(aksi, isi),
+        periksaVersi,
+      });
+      if (h.status === 'sesi-habis') return sesiBerakhir();
+      if (h.status !== 'ok') return pesanKilat(h.pesan, true);
+      const galatLama = galatData;
+      terimaData(h.respons);
+      if (galatData) return pesanKilat('Gagal sinkron: data dari server tidak bisa dipakai. Data di HP tetap bisa dipakai.', true);
+      pesanKilat(h.pesan);
+      if (h.versiBaru) return setTimeout(() => location.reload(), 1200);
+      const wajibBaru = !!(SESI.akun() || {}).wajibGanti;
+      if (wajibBaru && !wajibLama) return alihkan('#/ganti-password');
+      // Render ulang hanya bila data berubah, agar isian yang sedang diketik tidak hilang.
+      if (SESI.versiData() !== versiLama || galatData !== galatLama || rute() === '/') render();
+    } catch (e) {
+      pesanKilat('Gagal sinkron. Data di HP tetap bisa dipakai.', true);
+    } finally {
+      tombolSinkron.disabled = false;
+      tombolSinkron.classList.remove('berjalan');
+      tombolSinkron.removeAttribute('aria-busy');
+    }
   });
 
   // ---------- offline ----------

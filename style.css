@@ -204,7 +204,7 @@ select {
 }
 
 /* ---------- menu pengguna (header) ---------- */
-.pengguna { position: relative; }
+.pengguna { position: relative; display: flex; align-items: center; }
 .pengguna[hidden] { display: none; }
 .tombol-menu {
   width: 44px; height: 44px; margin-right: -8px;
@@ -213,6 +213,21 @@ select {
 }
 .tombol-menu:active { background: rgba(255, 255, 255, .15); }
 .tombol-menu svg { width: 22px; height: 22px; fill: #fff; }
+.tombol-sinkron { margin-right: 0; }
+.tombol-sinkron svg { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tombol-sinkron:disabled { cursor: default; }
+.tombol-sinkron.berjalan svg { animation: putar .9s linear infinite; }
+
+/* Pesan singkat di bawah layar (hasil sinkron). */
+.pesan-kilat {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 50;
+  transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px);
+  padding: 12px 18px; border-radius: 12px;
+  background: rgba(20, 20, 20, .92); color: #fff; font-weight: 600; text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+}
+.pesan-kilat[hidden] { display: none; }
+.pesan-kilat.gagal { background: #8a1f1f; }
 .menu-pengguna {
   position: absolute; right: 0; top: 48px; z-index: 10;
   min-width: 220px; padding: 6px 0;
