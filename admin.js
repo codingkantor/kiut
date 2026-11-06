@@ -36,7 +36,7 @@
   };
 
   // Keadaan halaman admin yang bertahan antar-render.
-  const st = { cari: {}, edit: null, akunEdit: null, masalah: null, masalahVersi: null };
+  const st = { cari: {}, edit: null, akunEdit: null, masalah: null, masalahVersi: null, pesanData: '' };
 
   function tampilkan(app, k, sub) {
     const { esc } = k;
@@ -171,7 +171,7 @@
             </form>` : `
             <div class="aksi">
               <button type="button" class="tombol-kecil" data-aksi="ubah">Ubah</button>
-              <button type="button" class="tombol-kecil" data-aksi="reset" data-perlu-sinyal>Reset password</button>
+              ${a.username === saya ? '' : '<button type="button" class="tombol-kecil" data-aksi="reset" data-perlu-sinyal>Reset password</button>'}
               <button type="button" class="tombol-kecil${a.aktif ? ' bahaya' : ''}" data-aksi="aktif" data-perlu-sinyal>${a.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>
             </div>
             <p class="salah" data-umum></p>`}
@@ -275,8 +275,11 @@
       const cocok = baris.filter(r => !q || kolom.some(c => c.tipe === 'teks' && String(r[c.nama] || '').toLowerCase().includes(q)));
       const edit = st.edit && st.edit.tabel === tabel ? st.edit : null;
 
+      const pesan = st.pesanData;
+      st.pesanData = '';
       isi.innerHTML = `
         <div id="masalah"></div>
+        ${pesan ? `<p class="banner-offline">${esc(pesan)}</p>` : ''}
         ${edit ? formBaris(kolom, edit) : `
         <div class="bilah-data">
           <input type="search" id="cari-data" placeholder="Cari…" value="${esc(st.cari[tabel] || '')}" autocomplete="off">
@@ -369,12 +372,18 @@
         await k.periksaSesi(); // ambil data terbaru ke HP admin
         tabDataTabel();
       };
+      // Baris sudah dihapus/diubah admin lain: muat ulang daftar terbaru.
+      const sudahBerubah = async r => {
+        st.pesanData = r.pesan.replace(' Muat ulang daftar.', '') + ' Daftar sudah dimuat ulang.';
+        await selesai();
+      };
       isi.querySelector('#batal-baris').addEventListener('click', () => { st.edit = null; tabDataTabel(); });
       const hapus = isi.querySelector('#hapus-baris');
       if (hapus) hapus.addEventListener('click', async () => {
         if (!confirm('Hapus baris ini? Petugas tidak akan melihatnya lagi setelah HP mereka online.')) return;
         const r = await panggil('dataHapus', { tabel, id: edit.baris.id });
         if (!r) return;
+        if (!r.ok && r.galat === 'tidak-ada') return sudahBerubah(r);
         if (!r.ok) return tampilkanGalat(form, r);
         selesai();
       });
@@ -387,6 +396,7 @@
         const r = await panggil('dataSimpan', { tabel, baris: isian });
         tombol.disabled = false;
         if (!r) return;
+        if (!r.ok && r.galat === 'tidak-ada') return sudahBerubah(r);
         if (!r.ok) return tampilkanGalat(form, r);
         selesai();
       });

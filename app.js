@@ -363,7 +363,10 @@
 
   function layarKonversi() {
     judul('Konversi', true);
-    const v = keadaan.konversi || (keadaan.konversi = { idx: '', banyak: '', cari: '' });
+    const v = keadaan.konversi || (keadaan.konversi = { id: '', banyak: '', cari: '' });
+    // Pilihan disimpan berdasarkan id baris, bukan urutan, karena data bisa berubah dari server.
+    const idxTerpilih = () => (v.id ? DATA.konversi.findIndex(r => r.id === v.id) : -1);
+    if (v.id && idxTerpilih() < 0) v.id = ''; // baris sudah dihapus admin
 
     app.innerHTML = `<section class="kartu" id="pilih"></section><section class="kartu"><div class="isian">
         <label for="f-banyak">Banyaknya</label>
@@ -374,8 +377,8 @@
     const banyakEl = app.querySelector('#f-banyak');
 
     function gambarPilih() {
-      if (v.idx !== '') {
-        const r = DATA.konversi[v.idx];
+      if (v.id) {
+        const r = DATA.konversi[idxTerpilih()];
         pilihEl.innerHTML = `<span class="label" style="display:block;margin-bottom:6px;font-weight:600">Komoditi</span>
           <div class="terpilih"><div><strong>${esc(r.komoditi)}</strong><span>${esc(r.lokal)} → ${esc(r.standar)} (× ${C.formatDesimal(r.faktor)})</span></div>
           <button type="button" class="tombol-kecil" id="ganti">Ganti</button></div>`;
@@ -391,12 +394,13 @@
       const q = v.cari.trim().toLowerCase();
       const cocok = DATA.konversi.map((r, i) => ({ r, i })).filter(({ r }) => !q || r.komoditi.toLowerCase().includes(q));
       pilihEl.querySelector('#daftar').innerHTML = cocok.length
-        ? cocok.map(({ r, i }) => `<li><button type="button" data-idx="${i}">${esc(r.komoditi)}<span class="sub">${esc(r.lokal)} → ${esc(r.standar)}</span></button></li>`).join('')
+        ? cocok.map(({ r }) => `<li><button type="button" data-id="${esc(r.id)}">${esc(r.komoditi)}<span class="sub">${esc(r.lokal)} → ${esc(r.standar)}</span></button></li>`).join('')
         : '<li class="nihil">Komoditi tidak ditemukan</li>';
     }
 
     function gambarHasil() {
-      const h = C.konversi(DATA, v);
+      const i = idxTerpilih();
+      const h = C.konversi(DATA, { idx: i < 0 ? '' : i, banyak: v.banyak });
       hasilEl.innerHTML = htmlHasil(h, h.ok ? [{ label: 'Hasil', teks: `${C.formatDesimal(h.nilai)} ${h.satuan}`, nilai: h.nilai }] : [],
         h.ok ? `<p class="rincian">${esc(h.rincian)}</p>` : '');
     }
@@ -410,14 +414,14 @@
       const b = e.target.closest('button');
       if (!b) return;
       if (b.id === 'ganti') {
-        v.idx = '';
+        v.id = '';
         gambarPilih();
         gambarHasil();
         pilihEl.querySelector('#f-cari').focus();
         return;
       }
-      if (b.dataset.idx !== undefined) {
-        v.idx = Number(b.dataset.idx);
+      if (b.dataset.id !== undefined) {
+        v.id = b.dataset.id;
         gambarPilih();
         gambarHasil();
         banyakEl.focus();
