@@ -5,6 +5,8 @@ Aplikasi web BPS Kabupaten Buru Selatan untuk:
 - **Konversi**: satuan lokal (cupa, tumpuk, ikat, …) ke satuan standar (Kg, Ons, Gram, …), 156 komoditi.
   Bila admin sudah mengisi **harga acuan** (terendah–tertinggi per satuan standar), hasilnya juga
   menampilkan perkiraan nilai rupiah, mis. 2 tumpuk tomat = 0,24 Kg × Rp8.000–Rp12.000 = Rp1.920–Rp2.880.
+  Pilih **Uang dibelanjakan** untuk kebalikannya: dari uang yang dikeluarkan ke rentang banyaknya,
+  mis. beras Rp30.000 dengan acuan Rp15.000–Rp18.000/Kg = 1,67–2 Kg ≈ 5,75–6,9 cupa.
 - **Imputasi**: 10 kalkulator biaya, yaitu BOS, PIP, BPJS (dengan pembagian Blok V.E / VII / VA),
   Imunisasi, Biaya Rawat, Melahirkan, KB, Listrik (biaya → kWh), PKH, dan Kepemilikan Rekening.
 
@@ -52,7 +54,7 @@ Sebelumnya server harus sudah disiapkan: lihat [docs/PANDUAN-SERVER.md](../docs/
    Bagikan link ini ke petugas.
 
 Setiap kali mengunggah versi baru file aplikasi, naikkan angka `CACHE` di `sw.js`
-(mis. `'kiut-app-8'` → `'kiut-app-9'`) dan angka `VERSI_APP` di `app.js` ke angka yang sama supaya HP mengambil versi baru.
+(mis. `'kiut-app-9'` → `'kiut-app-10'`) dan angka `VERSI_APP` di `app.js` ke angka yang sama supaya HP mengambil versi baru.
 
 ## 3. Cara mengelola akun dan data
 

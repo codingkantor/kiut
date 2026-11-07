@@ -69,6 +69,29 @@
     return hasil;
   }
 
+  // Kebalikan konversi + harga: uang yang dibelanjakan → rentang banyaknya.
+  // banyak (satuan standar) = uang ÷ harga tertinggi … uang ÷ harga terendah; satuan lokal = banyak ÷ faktor.
+  function dariUang(data, { idx, uang }) {
+    const baris = idx === undefined || idx === null || idx === '' ? undefined : data.konversi[Number(idx)];
+    if (!baris) return gagal('kosong');
+    const u = angka(uang);
+    if (typeof u !== 'number') return u;
+    const harga = [baris.hargaMin, baris.hargaMaks].filter(v => typeof v === 'number' && isFinite(v) && v > 0);
+    if (!harga.length) return gagal('harga');
+    const min = Math.min(...harga);
+    const maks = Math.max(...harga);
+    const banyak = { min: u / maks, maks: u / min };
+    return {
+      ok: true,
+      nilai: banyak.maks,
+      banyak,
+      satuan: baris.standar,
+      lokal: { min: banyak.min / baris.faktor, maks: banyak.maks / baris.faktor },
+      satuanLokal: baris.lokal,
+      rincian: `${formatRupiah(u)} ÷ ${formatRupiah(maks)}${maks !== min ? ` – ${formatRupiah(min)}` : ''} per ${baris.standar}`,
+    };
+  }
+
   // Harga acuan per satuan standar: { min, maks } atau null bila belum ada.
   // Satu harga saja → min = maks. Bila tertukar (diedit langsung di Sheet), diurutkan.
   function rentangHarga(baris) {
@@ -187,7 +210,7 @@
 
   const api = {
     parseAngka, formatRupiah, formatDesimal,
-    konversi, bos, pip, bpjs, BLOK, imunisasi, rawat, melahirkan, opsiMelahirkan, perluKunjungan,
+    konversi, dariUang, bos, pip, bpjs, BLOK, imunisasi, rawat, melahirkan, opsiMelahirkan, perluKunjungan,
     kb, listrik, pkh, rekening,
   };
 

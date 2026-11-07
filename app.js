@@ -7,7 +7,7 @@
   const SESI = KIUT_SESI;
   const API = KIUT_API;
   // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
-  const VERSI_APP = 8;
+  const VERSI_APP = 9;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -44,6 +44,7 @@
     negatif: 'Angka harus ≥ 0',
     bulan: 'Bulan harus 1–12',
     tarif: 'Tarif belum tersedia',
+    harga: 'Harga acuan belum tersedia, tidak bisa menghitung dari uang',
   };
 
   // ---------- definisi kalkulator imputasi ----------
@@ -410,18 +411,32 @@
 
   function layarKonversi() {
     judul('Konversi', true);
-    const v = keadaan.konversi || (keadaan.konversi = { id: '', banyak: '', cari: '' });
+    const v = keadaan.konversi || (keadaan.konversi = { id: '', banyak: '', uang: '', cari: '', mode: 'banyak' });
+    // mode 'banyak': banyaknya → satuan standar & nilai rupiah; mode 'uang': uang dibelanjakan → rentang banyaknya.
     // Pilihan disimpan berdasarkan id baris, bukan urutan, karena data bisa berubah dari server.
     const idxTerpilih = () => (v.id ? DATA.konversi.findIndex(r => r.id === v.id) : -1);
     if (v.id && idxTerpilih() < 0) v.id = ''; // baris sudah dihapus admin
 
-    app.innerHTML = `<section class="kartu" id="pilih"></section><section class="kartu"><div class="isian">
-        <label for="f-banyak">Banyaknya</label>
-        <input type="text" inputmode="decimal" autocomplete="off" id="f-banyak" value="${esc(v.banyak)}">
+    app.innerHTML = `<section class="kartu" id="pilih"></section>
+      <div class="tab-admin pilih-mode" role="tablist" aria-label="Hitung dari">
+        <button type="button" role="tab" data-mode="banyak" aria-selected="${v.mode === 'banyak'}">Banyaknya</button>
+        <button type="button" role="tab" data-mode="uang" aria-selected="${v.mode === 'uang'}">Uang dibelanjakan</button>
+      </div>
+      <section class="kartu"><div class="isian">
+        <label for="f-banyak" id="label-isian"></label>
+        <input type="text" inputmode="decimal" autocomplete="off" id="f-banyak">
       </div></section><div id="hasil"></div>`;
     const pilihEl = app.querySelector('#pilih');
     const hasilEl = app.querySelector('#hasil');
     const banyakEl = app.querySelector('#f-banyak');
+    const modeEl = app.querySelector('.pilih-mode');
+
+    // Isian yang sama dipakai kedua mode; label dan nilainya mengikuti mode aktif.
+    function gambarIsianMode() {
+      app.querySelector('#label-isian').textContent = v.mode === 'uang' ? 'Uang dibelanjakan (Rp)' : 'Banyaknya';
+      banyakEl.value = v.mode === 'uang' ? v.uang : v.banyak;
+      modeEl.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === v.mode)));
+    }
 
     function gambarPilih() {
       if (v.id) {
@@ -445,7 +460,24 @@
         : '<li class="nihil">Komoditi tidak ditemukan</li>';
     }
 
+    function gambarHasilUang() {
+      const i = idxTerpilih();
+      const h = C.dariUang(DATA, { idx: i < 0 ? '' : i, uang: v.uang });
+      if (!h.ok) { hasilEl.innerHTML = htmlHasil(h, []); return; }
+      const { min, maks } = h.banyak;
+      const des = C.formatDesimal;
+      const baris = min === maks
+        ? [{ label: `Banyaknya (${h.satuan})`, teks: `${des(min)} ${h.satuan}`, nilai: min }]
+        : [{ label: 'Banyaknya paling sedikit', teks: `${des(min)} ${h.satuan}`, nilai: min },
+          { label: 'Banyaknya paling banyak', teks: `${des(maks)} ${h.satuan}`, nilai: maks }];
+      const lokal = h.lokal.min === h.lokal.maks ? des(h.lokal.min) : `${des(h.lokal.min)} – ${des(h.lokal.maks)}`;
+      const ekstra = `<p class="rincian">Dalam satuan lokal: ≈ ${esc(lokal)} ${esc(h.satuanLokal)}</p>
+        <p class="rincian">${esc(h.rincian)}</p>`;
+      hasilEl.innerHTML = htmlHasil(h, baris, ekstra);
+    }
+
     function gambarHasil() {
+      if (v.mode === 'uang') return gambarHasilUang();
       const i = idxTerpilih();
       const h = C.konversi(DATA, { idx: i < 0 ? '' : i, banyak: v.banyak });
       if (!h.ok) { hasilEl.innerHTML = htmlHasil(h, []); return; }
@@ -489,11 +521,21 @@
       }
     });
     banyakEl.addEventListener('input', () => {
-      v.banyak = banyakEl.value;
+      if (v.mode === 'uang') v.uang = banyakEl.value;
+      else v.banyak = banyakEl.value;
       gambarHasil();
+    });
+    modeEl.addEventListener('click', e => {
+      const b = e.target.closest('[data-mode]');
+      if (!b || b.dataset.mode === v.mode) return;
+      v.mode = b.dataset.mode;
+      gambarIsianMode();
+      gambarHasil();
+      banyakEl.focus();
     });
 
     gambarPilih();
+    gambarIsianMode();
     gambarHasil();
   }
 

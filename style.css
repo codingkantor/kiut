@@ -277,6 +277,13 @@ input[type="password"]:focus { outline: none; border-color: var(--hijau); box-sh
   border-radius: 9px; color: var(--teks); text-decoration: none; font-weight: 600;
 }
 .tab-admin a[aria-selected="true"] { background: var(--kartu); box-shadow: var(--bayangan); color: var(--hijau-tua); }
+/* Pilihan mode di layar Konversi (Banyaknya | Uang dibelanjakan), gaya sama dengan tab admin. */
+.tab-admin button {
+  display: grid; place-items: center; min-height: 44px; padding: 4px 8px;
+  border: 0; border-radius: 9px; background: none; color: var(--teks);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.tab-admin button[aria-selected="true"] { background: var(--kartu); box-shadow: var(--bayangan); color: var(--hijau-tua); }
 .banner-offline { margin: 0 0 14px; padding: 12px 14px; background: #fff4e5; color: #7a4100; border-radius: 10px; font-weight: 600; }
 .banner-offline[hidden] { display: none; }
 .judul-bagian { margin: 0 0 12px; font-size: 1.05rem; }
