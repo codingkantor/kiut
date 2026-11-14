@@ -100,19 +100,21 @@
     return { min: Math.min(...ada), maks: Math.max(...ada) };
   }
 
-  // Pinjaman: Flat = pokok × (1 + i × n); Majemuk = cicilan anuitas P·i ÷ (1 − (1+i)^−n). i = bunga per bulan.
-  function bunga(_data, { pokok, persen, bentuk, bulan }) {
+  // Pinjaman (dibayar di akhir; cicilan = total ÷ n). Flat: P × (1 + i × n); Majemuk: P × (1 + i)^n.
+  // i per bulan; bunga per tahun dibagi 12 (flat = P × r × t, majemuk = bunga digulung bulanan).
+  function bunga(_data, { pokok, persen, per, bentuk, bulan }) {
     if (!bentuk) return gagal('kosong');
     const a = bacaAngka([pokok, persen, bulan]);
     if (a.error) return a.error;
     const [p, pr, n] = a.nilai;
     if (!Number.isInteger(n) || n < 1) return gagal('lama');
-    const i = pr / 100;
-    const cicilan = bentuk === 'Flat' || i === 0 ? p * (1 + i * n) / n : p * i / (1 - Math.pow(1 + i, -n));
-    const rincian = bentuk === 'Flat'
-      ? `${formatRupiah(p)} × (1 + ${formatDesimal(pr)}% × ${n} bulan)`
-      : `Anuitas ${formatRupiah(p)}, ${formatDesimal(pr)}% per bulan, ${n} bulan`;
-    return { ok: true, nilai: cicilan * n, cicilan, rincian };
+    const tahunan = per === 'Tahun';
+    const i = pr / 100 / (tahunan ? 12 : 1);
+    const total = bentuk === 'Flat' ? p * (1 + i * n) : p * Math.pow(1 + i, n);
+    const rumus = bentuk === 'Flat' ? `(1 + ${formatDesimal(pr)}%${tahunan ? ' ÷ 12' : ''} × ${n})`
+      : `(1 + ${formatDesimal(pr)}%${tahunan ? ' ÷ 12' : ''})^${n}`;
+    return { ok: true, nilai: total, cicilan: total / n,
+      rincian: `${formatRupiah(p)} × ${rumus}; cicilan = total ÷ ${n} bulan` };
   }
 
   const bos = (data, { jenjang, art }) => kali(cari(data.bos, 'jenjang', jenjang), 'biaya', [art]);

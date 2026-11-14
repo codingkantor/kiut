@@ -7,7 +7,7 @@
   const SESI = KIUT_SESI;
   const API = KIUT_API;
   // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
-  const VERSI_APP = 10;
+  const VERSI_APP = 11;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -154,7 +154,8 @@
       judul: 'Bunga Pinjaman', ket: 'Total hutang dan cicilan per bulan dari pinjaman berbunga.',
       isian: [
         { id: 'pokok', label: 'Uang yang dipinjam (Rp)', tipe: 'angka' },
-        { id: 'persen', label: 'Bunga per bulan (%)', tipe: 'angka' },
+        { id: 'persen', label: 'Bunga (%)', tipe: 'angka' },
+        { id: 'per', label: 'Bunga per', tipe: 'pilih', opsi: () => ['Bulan', 'Tahun'], awal: 'Bulan' },
         { id: 'bentuk', label: 'Bentuk bunga', tipe: 'pilih', opsi: () => ['Flat', 'Majemuk'] },
         { id: 'bulan', label: 'Lama pinjaman (bulan)', tipe: 'angka' },
       ],
