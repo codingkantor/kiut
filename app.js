@@ -7,7 +7,7 @@
   const SESI = KIUT_SESI;
   const API = KIUT_API;
   // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
-  const VERSI_APP = 9;
+  const VERSI_APP = 10;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -34,6 +34,7 @@
     listrik: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     pkh: '<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6M13 20c0-2.6 1.8-5 4-5s4 2.4 4 5"/>',
     rekening: '<path d="M3 9l9-5 9 5M4 9h16M5 9v9M9.5 9v9M14.5 9v9M19 9v9M3 21h18"/>',
+    bunga: '<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 9.5h.01M14.5 14.5h.01"/>',
     admin: '<circle cx="9" cy="7" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5 1.3 0 2.5.4 3.5 1"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M17.5 12v1.5M17.5 19.5V21M13 16.5h1.5M20.5 16.5H22"/>',
   };
   const ikon = (nama, kelas = 'ikon') => `<svg class="${kelas}" viewBox="0 0 24 24" aria-hidden="true">${IKON[nama]}</svg>`;
@@ -44,6 +45,7 @@
     negatif: 'Angka harus ≥ 0',
     bulan: 'Bulan harus 1–12',
     tarif: 'Tarif belum tersedia',
+    lama: 'Lama pinjaman harus bulan bulat ≥ 1',
     harga: 'Harga acuan belum tersedia, tidak bisa menghitung dari uang',
   };
 
@@ -148,8 +150,19 @@
       hitung: v => C.rekening(DATA, v),
       labelHasil: 'Total biaya per bulan',
     },
+    bunga: {
+      judul: 'Bunga Pinjaman', ket: 'Total hutang dan cicilan per bulan dari pinjaman berbunga.',
+      isian: [
+        { id: 'pokok', label: 'Uang yang dipinjam (Rp)', tipe: 'angka' },
+        { id: 'persen', label: 'Bunga per bulan (%)', tipe: 'angka' },
+        { id: 'bentuk', label: 'Bentuk bunga', tipe: 'pilih', opsi: () => ['Flat', 'Majemuk'] },
+        { id: 'bulan', label: 'Lama pinjaman (bulan)', tipe: 'angka' },
+      ],
+      hitung: v => C.bunga(DATA, v),
+      labelHasil: 'Total hutang',
+    },
   };
-  const URUTAN = ['bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
+  const URUTAN = ['bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening', 'bunga'];
 
   // Nilai isian disimpan selama aplikasi terbuka, agar tidak hilang saat kembali.
   const keadaan = {};
@@ -174,6 +187,7 @@
   function barisImputasi(id, def, h) {
     if (id === 'listrik') return [{ label: def.labelHasil, teks: `${C.formatDesimal(h.nilai)} kWh`, nilai: h.nilai }];
     const baris = [{ label: def.labelHasil, teks: rp(h.nilai), nilai: h.nilai }];
+    if (id === 'bunga') baris.push({ label: 'Cicilan per bulan', teks: rp(h.cicilan), nilai: h.cicilan });
     if (id === 'bpjs') {
       const LABEL = { ve: 'Blok V.E Rinc.1 Kol.3', vii: 'Blok VII Rinc.1 Kol.2', va: 'Blok VA Kol.6' };
       for (const k of ['ve', 'vii', 'va']) {

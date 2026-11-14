@@ -100,6 +100,21 @@
     return { min: Math.min(...ada), maks: Math.max(...ada) };
   }
 
+  // Pinjaman: Flat = pokok × (1 + i × n); Majemuk = cicilan anuitas P·i ÷ (1 − (1+i)^−n). i = bunga per bulan.
+  function bunga(_data, { pokok, persen, bentuk, bulan }) {
+    if (!bentuk) return gagal('kosong');
+    const a = bacaAngka([pokok, persen, bulan]);
+    if (a.error) return a.error;
+    const [p, pr, n] = a.nilai;
+    if (!Number.isInteger(n) || n < 1) return gagal('lama');
+    const i = pr / 100;
+    const cicilan = bentuk === 'Flat' || i === 0 ? p * (1 + i * n) / n : p * i / (1 - Math.pow(1 + i, -n));
+    const rincian = bentuk === 'Flat'
+      ? `${formatRupiah(p)} × (1 + ${formatDesimal(pr)}% × ${n} bulan)`
+      : `Anuitas ${formatRupiah(p)}, ${formatDesimal(pr)}% per bulan, ${n} bulan`;
+    return { ok: true, nilai: cicilan * n, cicilan, rincian };
+  }
+
   const bos = (data, { jenjang, art }) => kali(cari(data.bos, 'jenjang', jenjang), 'biaya', [art]);
 
   const pip = (data, { jenjang, art, semester }) =>
@@ -211,7 +226,7 @@
   const api = {
     parseAngka, formatRupiah, formatDesimal,
     konversi, dariUang, bos, pip, bpjs, BLOK, imunisasi, rawat, melahirkan, opsiMelahirkan, perluKunjungan,
-    kb, listrik, pkh, rekening,
+    kb, listrik, pkh, rekening, bunga,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
