@@ -362,3 +362,5 @@ input:disabled { background: #f0f2f0; color: var(--redup); }
 }
 @keyframes putar { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .putar { animation-duration: 3s; } }
+
+.ket-isian { display: block; margin-top: 4px; font-size: .85rem; opacity: .75; min-height: 1.1em; }

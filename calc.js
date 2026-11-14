@@ -117,6 +117,16 @@
       rincian: `${formatRupiah(p)} × ${rumus}; cicilan = total ÷ ${n} bulan` };
   }
 
+  // Teks bantu di bawah isian: 'uang' → "Rp 10.000"; 'bulan' → "10 tahun lebih 1 bulan". Isian tidak sah → ''.
+  function keterangan(jenis, teks) {
+    const n = parseAngka(teks);
+    if (!(n >= 0)) return '';
+    if (jenis === 'uang') return formatRupiah(n);
+    if (jenis !== 'bulan' || !Number.isInteger(n) || n < 1) return '';
+    const t = Math.floor(n / 12), b = n % 12;
+    return [t && `${t} tahun`, b && `${b} bulan`].filter(Boolean).join(' lebih ');
+  }
+
   const bos = (data, { jenjang, art }) => kali(cari(data.bos, 'jenjang', jenjang), 'biaya', [art]);
 
   const pip = (data, { jenjang, art, semester }) =>
@@ -228,7 +238,7 @@
   const api = {
     parseAngka, formatRupiah, formatDesimal,
     konversi, dariUang, bos, pip, bpjs, BLOK, imunisasi, rawat, melahirkan, opsiMelahirkan, perluKunjungan,
-    kb, listrik, pkh, rekening, bunga,
+    kb, listrik, pkh, rekening, bunga, keterangan,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

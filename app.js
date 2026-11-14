@@ -7,7 +7,7 @@
   const SESI = KIUT_SESI;
   const API = KIUT_API;
   // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
-  const VERSI_APP = 11;
+  const VERSI_APP = 12;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -129,7 +129,7 @@
       judul: 'Listrik', ket: 'Mengubah biaya listrik per bulan menjadi pemakaian kWh.',
       isian: [
         { id: 'daya', label: 'Daya', tipe: 'pilih', opsi: daftar('listrik', 'daya') },
-        { id: 'biaya', label: 'Biaya per bulan (Rp)', tipe: 'angka' },
+        { id: 'biaya', label: 'Biaya per bulan (Rp)', tipe: 'angka', ket: 'uang' },
       ],
       hitung: v => C.listrik(DATA, v),
       labelHasil: 'Total kWh per bulan',
@@ -153,11 +153,11 @@
     bunga: {
       judul: 'Bunga Pinjaman', ket: 'Total hutang dan cicilan per bulan dari pinjaman berbunga.',
       isian: [
-        { id: 'pokok', label: 'Uang yang dipinjam (Rp)', tipe: 'angka' },
+        { id: 'pokok', label: 'Uang yang dipinjam (Rp)', tipe: 'angka', ket: 'uang' },
         { id: 'persen', label: 'Bunga (%)', tipe: 'angka' },
         { id: 'per', label: 'Bunga per', tipe: 'pilih', opsi: () => ['Bulan', 'Tahun'], awal: 'Bulan' },
         { id: 'bentuk', label: 'Bentuk bunga', tipe: 'pilih', opsi: () => ['Flat', 'Majemuk'] },
-        { id: 'bulan', label: 'Lama pinjaman (bulan)', tipe: 'angka' },
+        { id: 'bulan', label: 'Lama pinjaman (bulan)', tipe: 'angka', ket: 'bulan' },
       ],
       hitung: v => C.bunga(DATA, v),
       labelHasil: 'Total hutang',
@@ -381,7 +381,8 @@
         }
         if (f.tipe === 'angka') {
           return `<div class="isian"><label for="f-${f.id}">${esc(f.label)}</label>
-            <input type="text" inputmode="decimal" autocomplete="off" id="f-${f.id}" data-id="${f.id}" value="${esc(v[f.id])}"></div>`;
+            <input type="text" inputmode="decimal" autocomplete="off" id="f-${f.id}" data-id="${f.id}" value="${esc(v[f.id])}"${f.ket ? ` aria-describedby="k-${f.id}">
+            <small class="ket-isian" id="k-${f.id}">${esc(C.keterangan(f.ket, v[f.id]))}</small>` : '>'}</div>`;
         }
         // centang
         return `<div class="isian"><span class="label">${esc(f.label)}</span><div class="centang">${f.opsi(v).map(o => `
@@ -404,6 +405,9 @@
       const t = e.target;
       if (t.type !== 'text') return;
       v[t.dataset.id] = t.value;
+      const k = isianEl.querySelector(`#k-${t.dataset.id}`);
+      const f = def.isian.find(x => x.id === t.dataset.id);
+      if (k) k.textContent = C.keterangan(f.ket, t.value);
       gambarHasil();
     });
     isianEl.addEventListener('change', e => {
@@ -439,7 +443,8 @@
       </div>
       <section class="kartu"><div class="isian">
         <label for="f-banyak" id="label-isian"></label>
-        <input type="text" inputmode="decimal" autocomplete="off" id="f-banyak">
+        <input type="text" inputmode="decimal" autocomplete="off" id="f-banyak" aria-describedby="k-banyak">
+        <small class="ket-isian" id="k-banyak"></small>
       </div></section><div id="hasil"></div>`;
     const pilihEl = app.querySelector('#pilih');
     const hasilEl = app.querySelector('#hasil');
@@ -447,9 +452,11 @@
     const modeEl = app.querySelector('.pilih-mode');
 
     // Isian yang sama dipakai kedua mode; label dan nilainya mengikuti mode aktif.
+    const gambarKet = () => { app.querySelector('#k-banyak').textContent = v.mode === 'uang' ? C.keterangan('uang', v.uang) : ''; };
     function gambarIsianMode() {
       app.querySelector('#label-isian').textContent = v.mode === 'uang' ? 'Uang dibelanjakan (Rp)' : 'Banyaknya';
       banyakEl.value = v.mode === 'uang' ? v.uang : v.banyak;
+      gambarKet();
       modeEl.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === v.mode)));
     }
 
@@ -538,6 +545,7 @@
     banyakEl.addEventListener('input', () => {
       if (v.mode === 'uang') v.uang = banyakEl.value;
       else v.banyak = banyakEl.value;
+      gambarKet();
       gambarHasil();
     });
     modeEl.addEventListener('click', e => {
