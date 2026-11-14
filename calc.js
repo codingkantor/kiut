@@ -127,6 +127,17 @@
     return [t && `${t} tahun`, b && `${b} bulan`].filter(Boolean).join(' lebih ');
   }
 
+  // Umur dari tanggal lahir sampai `hari` (keduanya 'YYYY-MM-DD'); bulan yang belum genap tidak dihitung.
+  function umur(_data, { lahir, hari }) {
+    const tgl = t => (/^\d{4}-\d{2}-\d{2}$/.test(t || '') ? t.split('-').map(Number) : null);
+    const a = tgl(lahir), b = tgl(hari);
+    if (!a || !b) return gagal('kosong');
+    const bulan = (b[0] - a[0]) * 12 + (b[1] - a[1]) - (b[2] < a[2] ? 1 : 0);
+    if (bulan < 0) return gagal('lahir');
+    const t = Math.floor(bulan / 12), m = bulan % 12;
+    return { ok: true, nilai: t, teks: t ? `${t} tahun${m ? ` lebih ${m} bulan` : ''}` : `${m} bulan` };
+  }
+
   const bos = (data, { jenjang, art }) => kali(cari(data.bos, 'jenjang', jenjang), 'biaya', [art]);
 
   const pip = (data, { jenjang, art, semester }) =>
@@ -238,7 +249,7 @@
   const api = {
     parseAngka, formatRupiah, formatDesimal,
     konversi, dariUang, bos, pip, bpjs, BLOK, imunisasi, rawat, melahirkan, opsiMelahirkan, perluKunjungan,
-    kb, listrik, pkh, rekening, bunga, keterangan,
+    kb, listrik, pkh, rekening, bunga, keterangan, umur,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

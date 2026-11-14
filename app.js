@@ -7,7 +7,7 @@
   const SESI = KIUT_SESI;
   const API = KIUT_API;
   // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
-  const VERSI_APP = 12;
+  const VERSI_APP = 13;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -35,6 +35,7 @@
     pkh: '<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6M13 20c0-2.6 1.8-5 4-5s4 2.4 4 5"/>',
     rekening: '<path d="M3 9l9-5 9 5M4 9h16M5 9v9M9.5 9v9M14.5 9v9M19 9v9M3 21h18"/>',
     bunga: '<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 9.5h.01M14.5 14.5h.01"/>',
+    umur: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     admin: '<circle cx="9" cy="7" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5 1.3 0 2.5.4 3.5 1"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M17.5 12v1.5M17.5 19.5V21M13 16.5h1.5M20.5 16.5H22"/>',
   };
   const ikon = (nama, kelas = 'ikon') => `<svg class="${kelas}" viewBox="0 0 24 24" aria-hidden="true">${IKON[nama]}</svg>`;
@@ -46,11 +47,12 @@
     bulan: 'Bulan harus 1–12',
     tarif: 'Tarif belum tersedia',
     lama: 'Lama pinjaman harus bulan bulat ≥ 1',
+    lahir: 'Tanggal lahir tidak boleh setelah hari ini',
     harga: 'Harga acuan belum tersedia, tidak bisa menghitung dari uang',
   };
 
   // ---------- definisi kalkulator imputasi ----------
-  // isian: { id, label, tipe: 'pilih'|'angka'|'centang', opsi(v), awal, tampil(v), hapus: [id…] }
+  // isian: { id, label, tipe: 'pilih'|'angka'|'tanggal'|'centang', opsi(v), awal, tampil(v), hapus: [id…] }
   // opsi untuk 'pilih' → [nilai] ; untuk 'centang' → [{ nilai, biaya }]
   const daftar = (tabel, kolom) => () => DATA[tabel].map(r => r[kolom]);
   const unik = arr => arr.filter((x, i) => arr.indexOf(x) === i);
@@ -162,8 +164,17 @@
       hitung: v => C.bunga(DATA, v),
       labelHasil: 'Total hutang',
     },
+    umur: {
+      judul: 'Umur', ket: 'Umur dari tanggal lahir sampai hari ini, dalam tahun dan bulan.',
+      isian: [
+        { id: 'lahir', label: 'Tanggal lahir', tipe: 'tanggal' },
+      ],
+      // Tanggal hari ini menurut jam HP (bukan UTC).
+      hitung: v => C.umur(DATA, { lahir: v.lahir, hari: new Date().toLocaleDateString('sv-SE') }),
+      labelHasil: 'Umur',
+    },
   };
-  const URUTAN = ['bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening', 'bunga'];
+  const URUTAN = ['bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening', 'bunga', 'umur'];
 
   // Nilai isian disimpan selama aplikasi terbuka, agar tidak hilang saat kembali.
   const keadaan = {};
@@ -186,6 +197,7 @@
   }
 
   function barisImputasi(id, def, h) {
+    if (id === 'umur') return [{ label: def.labelHasil, teks: h.teks, nilai: h.nilai }];
     if (id === 'listrik') return [{ label: def.labelHasil, teks: `${C.formatDesimal(h.nilai)} kWh`, nilai: h.nilai }];
     const baris = [{ label: def.labelHasil, teks: rp(h.nilai), nilai: h.nilai }];
     if (id === 'bunga') baris.push({ label: 'Cicilan per bulan', teks: rp(h.cicilan), nilai: h.cicilan });
@@ -379,6 +391,10 @@
             <select id="f-${f.id}" data-id="${f.id}"><option value="">— pilih —</option>${opsi.map(o =>
               `<option${o === v[f.id] ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`;
         }
+        if (f.tipe === 'tanggal') {
+          return `<div class="isian"><label for="f-${f.id}">${esc(f.label)}</label>
+            <input type="date" id="f-${f.id}" data-id="${f.id}" max="${new Date().toLocaleDateString('sv-SE')}" value="${esc(v[f.id])}"></div>`;
+        }
         if (f.tipe === 'angka') {
           return `<div class="isian"><label for="f-${f.id}">${esc(f.label)}</label>
             <input type="text" inputmode="decimal" autocomplete="off" id="f-${f.id}" data-id="${f.id}" value="${esc(v[f.id])}"${f.ket ? ` aria-describedby="k-${f.id}">
@@ -403,7 +419,7 @@
 
     isianEl.addEventListener('input', e => {
       const t = e.target;
-      if (t.type !== 'text') return;
+      if (t.type !== 'text' && t.type !== 'date') return;
       v[t.dataset.id] = t.value;
       const k = isianEl.querySelector(`#k-${t.dataset.id}`);
       const f = def.isian.find(x => x.id === t.dataset.id);
@@ -413,7 +429,7 @@
     isianEl.addEventListener('change', e => {
       const t = e.target;
       const f = def.isian.find(x => x.id === t.dataset.id);
-      if (!f || t.type === 'text') return;
+      if (!f || t.type === 'text' || t.type === 'date') return;
       if (f.tipe === 'centang') {
         v[f.id] = [...isianEl.querySelectorAll(`input[data-id="${f.id}"]:checked`)].map(x => x.value);
       } else {
