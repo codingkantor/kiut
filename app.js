@@ -7,7 +7,7 @@
   const SESI = KIUT_SESI;
   const API = KIUT_API;
   // Sama dengan angka CACHE di sw.js ('kiut-app-N'); naikkan keduanya setiap file aplikasi berubah.
-  const VERSI_APP = 13;
+  const VERSI_APP = 14;
   const TABEL = ['konversi', 'bos', 'pip', 'bpjs', 'imunisasi', 'rawat', 'melahirkan', 'kb', 'listrik', 'pkh', 'rekening'];
   let DATA = null;          // data tarif aktif (dari SESI.data())
   let galatData = false;    // true bila data terakhir dari server tidak bisa dipakai
@@ -201,6 +201,7 @@
     if (id === 'listrik') return [{ label: def.labelHasil, teks: `${C.formatDesimal(h.nilai)} kWh`, nilai: h.nilai }];
     const baris = [{ label: def.labelHasil, teks: rp(h.nilai), nilai: h.nilai }];
     if (id === 'bunga') baris.push({ label: 'Cicilan per bulan', teks: rp(h.cicilan), nilai: h.cicilan });
+    if (id === 'bunga') baris.push({ label: 'Bunga per bulan', teks: rp(h.bungaBulan), nilai: h.bungaBulan });
     if (id === 'bpjs') {
       const LABEL = { ve: 'Blok V.E Rinc.1 Kol.3', vii: 'Blok VII Rinc.1 Kol.2', va: 'Blok VA Kol.6' };
       for (const k of ['ve', 'vii', 'va']) {

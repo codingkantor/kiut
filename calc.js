@@ -113,7 +113,7 @@
     const total = bentuk === 'Flat' ? p * (1 + i * n) : p * Math.pow(1 + i, n);
     const rumus = bentuk === 'Flat' ? `(1 + ${formatDesimal(pr)}%${tahunan ? ' ÷ 12' : ''} × ${n})`
       : `(1 + ${formatDesimal(pr)}%${tahunan ? ' ÷ 12' : ''})^${n}`;
-    return { ok: true, nilai: total, cicilan: total / n,
+    return { ok: true, nilai: total, cicilan: total / n, bungaBulan: (total - p) / n,
       rincian: `${formatRupiah(p)} × ${rumus}; cicilan = total ÷ ${n} bulan` };
   }
 
